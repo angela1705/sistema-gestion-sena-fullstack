@@ -17,15 +17,20 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include
 from apps.usuarios.rol.api.router import routerRol
+from apps.usuarios.cargo.api.router import routerCargo
 from apps.entidades.sena_empresa.api.router import routerSena
 from apps.entidades.sede.api.router import routerSede
 from apps.entidades.unidades_productivas.api.router import routerUnidadP
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/personas/', include('apps.usuarios.persona.api.router')),
     path('api/', include(routerRol.urls)),
+    path('api/', include(routerCargo.urls)),
     path('api/', include(routerSena.urls)),
     path('api/', include(routerSede.urls)),
     path('api/', include(routerUnidadP.urls)),
+    
+    
     
 ]

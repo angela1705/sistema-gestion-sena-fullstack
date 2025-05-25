@@ -40,6 +40,7 @@ class SenaEmpresaCreateSerializer(serializers.ModelSerializer):
             'nombre', 'nit', 'direccion_principal',
             'telefono_contacto', 'email_contacto', 'logo', 'activa'
         ]
+        read_only_fields = ['id', 'fecha_creacion']
 
     def validate_nit(self, value):
         """Valida que el NIT sea único"""

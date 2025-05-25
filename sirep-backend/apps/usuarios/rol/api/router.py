@@ -3,3 +3,5 @@ from apps.usuarios.rol.api.views import RolViewSet
 
 routerRol=DefaultRouter()
 routerRol.register(prefix='rol',viewset=RolViewSet)
+
+urlpatterns = routerRol.urls
