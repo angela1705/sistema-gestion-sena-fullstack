@@ -1,9 +1,16 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..models import Persona
 
 
+class PersonaTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user'] = PersonaSerializer(self.user).data
+        return data
+    
 class PersonaRegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True,validators=[UniqueValidator(queryset=Persona.objects.all())])
     identificacion = serializers.CharField(required=True, max_length=20,validators=[UniqueValidator
