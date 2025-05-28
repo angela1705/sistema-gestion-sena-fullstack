@@ -21,6 +21,7 @@ from apps.usuarios.cargo.api.router import routerCargo
 from apps.entidades.sena_empresa.api.router import routerSena
 from apps.entidades.sede.api.router import routerSede
 from apps.entidades.unidades_productivas.api.router import routerUnidadP
+from apps.inventario.categorias.api.router import routerCategoria
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,6 +31,7 @@ urlpatterns = [
     path('api/', include(routerSena.urls)),
     path('api/', include(routerSede.urls)),
     path('api/', include(routerUnidadP.urls)),
+    path('api/', include(routerCategoria.urls)),
     
     
     
