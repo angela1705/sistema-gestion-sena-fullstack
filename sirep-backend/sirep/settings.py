@@ -157,7 +157,14 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
+AUTHENTICATION_BACKENDS = [
+    'apps.usuarios.persona.backends.IdentificacionBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 SIMPLE_JWT = {
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_OBTAIN_SERIALIZER': 'apps.usuarios.persona.serializer.PersonaTokenObtainPairSerializer',
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=480),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }

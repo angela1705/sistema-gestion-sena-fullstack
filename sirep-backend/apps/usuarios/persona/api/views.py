@@ -10,14 +10,10 @@ from .serializer import (
     PersonaRegisterSerializer,
     PersonaSerializer,
     PersonaUpdateSerializer,
-    PersonaResponsableSerializer
+    PersonaResponsableSerializer,
+    PersonaTokenObtainPairSerializer
 )
 
-class PersonaTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        data['user'] = PersonaSerializer(self.user).data
-        return data
 
 class PersonaAuthView(TokenObtainPairView):
     serializer_class = PersonaTokenObtainPairSerializer
@@ -39,7 +35,7 @@ class PersonaRegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         rol_id = request.data.get('rol')
-        if rol_id and int(rol_id) == 3:  # Ejemplo: pasante
+        if rol_id and int(rol_id) == 3:  
             if not request.data.get('numFicha'):
                 return Response(
                     {"numFicha": "El número de ficha es obligatorio para pasantes."},
