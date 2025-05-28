@@ -5,7 +5,7 @@ from apps.usuarios.cargo.models import Cargo
 from apps.entidades.sede.models import Sede
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser, Group, Permission
-
+from apps.usuarios.persona.PersonaManager import PersonaManager
 class Persona(AbstractUser):
     id_regex = RegexValidator(regex=r'^[0-9]{6,20}$')
 
@@ -20,8 +20,12 @@ class Persona(AbstractUser):
 
     USERNAME_FIELD = 'identificacion'
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
+
+    objects = PersonaManager()
     
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = f"user_{self.identificacion}"
         super().save(*args, **kwargs)
+
+
