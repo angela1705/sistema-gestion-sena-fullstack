@@ -2,46 +2,61 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
+from django.utils.translation import gettext_lazy as _
 from ..models import Persona
 
 
 class PersonaTokenObtainPairSerializer(TokenObtainPairSerializer):
-    identificacion = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    default_error_messages = {'no_active_account': _('Credenciales incorrectas o cuenta inactiva')}
 
     def validate(self, attrs):
-        identificacion = attrs.get("identificacion")
-        password = attrs.get("password")
+    
+        identificacion = attrs.get('identificacion')
+        password = attrs.get('password')
 
-        def validate(self, attrs):
-            identificacion = attrs.get("identificacion")
-            password = attrs.get("password")
+        if identificacion and password:
+            user = authenticate(
+                request=self.context.get('request'),
+                identificacion=identificacion,
+                password=password
+            )
 
-        try:
-            user = Persona.objects.get(identificacion=identificacion)
-        except Persona.DoesNotExist:
-            raise serializers.ValidationError({"identificacion": "No se encontró un usuario con esta identificación."})
-
-        if not user.check_password(password):
-            raise serializers.ValidationError({"password": "Contraseña incorrecta."})
-
-        if not user.is_active:
-            raise serializers.ValidationError("Esta cuenta está deshabilitada.")
-
+            if not user:
+                raise serializers.ValidationError(
+                    {'identificacion': _('Identificación o contraseña incorrectas')},
+                    code='authorization'
+                )
+        else:
+            raise serializers.ValidationError(
+                _('Debe incluir "identificacion" y "password".'),
+                code='authorization'
+            )
 
         data = super().validate({
-            "username": user.username,
-            "password": password
+            'identificacion': user.identificacion,
+            'password': password
         })
-        data["user"] = PersonaSerializer(user, context=self.context).data
+        
+        data['user'] = PersonaSerializer(user, context=self.context).data
         return data
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['identificacion'] = user.identificacion
+        token['rol'] = user.rol.nombre if user.rol else None
+        return token
     
 class PersonaRegisterSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(required=True,validators=[UniqueValidator(queryset=Persona.objects.all())])
-    identificacion = serializers.CharField(required=True, max_length=20,validators=[UniqueValidator
-        (queryset=Persona.objects.all())])
-    password = serializers.CharField(write_only=True, required=True,min_length=8,style={'input_type': 'password'} )
-
+    # Hacemos username opcional
+    username = serializers.CharField(required=False)
+    identificacion = serializers.CharField(
+        required=True, 
+        max_length=20,
+        validators=[UniqueValidator(queryset=Persona.objects.all())]
+    )
+    
     class Meta:
         model = Persona
         fields = (
@@ -51,8 +66,9 @@ class PersonaRegisterSerializer(serializers.ModelSerializer):
         )
         extra_kwargs = {
             "password": {"write_only": True},
-            "numFicha": {"required": False, "allow_null": True},
+            "username": {"required": False},
         }
+
 
     def validate_password(self, value):
         if len(value) < 8:
@@ -60,6 +76,10 @@ class PersonaRegisterSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
+        # Generamos username automáticamente si no se proporciona
+        if not validated_data.get('username'):
+            validated_data['username'] = f"user_{validated_data['identificacion']}"
+        
         validated_data["password"] = make_password(validated_data["password"])
         return super().create(validated_data)
     
