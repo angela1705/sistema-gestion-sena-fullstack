@@ -6,7 +6,12 @@ from ..models import Persona
 
 
 class PersonaTokenObtainPairSerializer(TokenObtainPairSerializer):
+    identificacion = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
     def validate(self, attrs):
+        identificacion = attrs.get("identificacion")
+        password = attrs.get("password")
         data = super().validate(attrs)
         data['user'] = PersonaSerializer(self.user).data
         return data

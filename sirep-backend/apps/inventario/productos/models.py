@@ -17,6 +17,10 @@ class Producto(models.Model):
         ('stock', 'Gestión por stock'),
         ('produccion', 'Producción diaria (almuerzos)')
     ]
+    DESCUENTO_CHOICES = [
+        ('si', 'Tiene descuento'),
+        ('no', 'No Tiene descuento'),
+    ]
     nombre = models.CharField(max_length=100) 
     descripcion = models.TextField()
     categoria = models.ForeignKey(TipoCategoria, on_delete=models.SET_NULL, null=True,blank=True)
@@ -25,6 +29,7 @@ class Producto(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible')
     tipo_gestion = models.CharField(max_length=20,choices=TIPO_GESTION,default='con_stock')
     reservas = models.CharField(max_length=20, choices=RESERVA_CHOICES,default='no')
+    descuento=models.CharField(max_length=20, choices=DESCUENTO_CHOICES,default='no')
 
     stock_actual = models.PositiveIntegerField(null=True,blank=True)#solo para los que si utilizan stock
     capacidad_diaria = models.PositiveIntegerField(null=True,blank=True,help_text="Para productos sin stock (ej: almuerzos)")
