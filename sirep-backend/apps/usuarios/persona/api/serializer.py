@@ -12,8 +12,28 @@ class PersonaTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         identificacion = attrs.get("identificacion")
         password = attrs.get("password")
-        data = super().validate(attrs)
-        data['user'] = PersonaSerializer(self.user).data
+
+        def validate(self, attrs):
+            identificacion = attrs.get("identificacion")
+            password = attrs.get("password")
+
+        try:
+            user = Persona.objects.get(identificacion=identificacion)
+        except Persona.DoesNotExist:
+            raise serializers.ValidationError({"identificacion": "No se encontró un usuario con esta identificación."})
+
+        if not user.check_password(password):
+            raise serializers.ValidationError({"password": "Contraseña incorrecta."})
+
+        if not user.is_active:
+            raise serializers.ValidationError("Esta cuenta está deshabilitada.")
+
+
+        data = super().validate({
+            "username": user.username,
+            "password": password
+        })
+        data["user"] = PersonaSerializer(user, context=self.context).data
         return data
     
 class PersonaRegisterSerializer(serializers.ModelSerializer):
