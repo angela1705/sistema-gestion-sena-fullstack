@@ -24,12 +24,13 @@ const LoginForm: React.FC = () => {
     }
   };
 
+  // src/components/usuarios/LoginForm.tsx
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+   e.preventDefault();
     if (validationError) return;
-    const result = await login(credentials);
+   const result = await login(credentials);
     if (result) {
-      navigate('/dashboard');
+      navigate('/inicio'); // Cambia '/dashboard' por '/inicio'
     }
   };
 
