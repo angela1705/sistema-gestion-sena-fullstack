@@ -1,20 +1,30 @@
+// src/App.tsx
 import { Route, Routes } from "react-router-dom";
-
-import IndexPage from "@/pages/index";
-import DocsPage from "@/pages/docs";
-import PricingPage from "@/pages/pricing";
-import BlogPage from "@/pages/blog";
-import AboutPage from "@/pages/about";
+import Login from "./pages/usuarios/Login";
+import Navbar from "./components/global/navbar";
+import Inicio from "./pages/usuarios/Inicio"; // Página de Inicio que crearemos
+import { useState } from "react";
+import { GlobalStyles } from "./components/global/navbar";
 
 function App() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  };
+
   return (
-    <Routes>
-      <Route element={<IndexPage />} path="/" />
-      <Route element={<DocsPage />} path="/docs" />
-      <Route element={<PricingPage />} path="/pricing" />
-      <Route element={<BlogPage />} path="/blog" />
-      <Route element={<AboutPage />} path="/about" />
-    </Routes>
+    <>
+      <GlobalStyles />
+      <Navbar isOpen={isOpen} toggleSidebar={toggleSidebar} />
+      <div className={`transition-all ${isOpen ? "ml-64" : "ml-20"}`}>
+        <Routes>
+          <Route element={<Login />} path="/" />
+          <Route element={<Inicio />} path="/inicio" />
+          {/* Agrega más rutas según necesites */}
+        </Routes>
+      </div>
+    </>
   );
 }
 
