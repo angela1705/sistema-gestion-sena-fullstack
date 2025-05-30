@@ -1,82 +1,38 @@
-import { FC, useState, useEffect } from "react";
-import { VisuallyHidden } from "@react-aria/visually-hidden";
-import { SwitchProps, useSwitch } from "@heroui/switch";
-import clsx from "clsx";
-import { useTheme } from "@heroui/use-theme";
+// src/globales/ThemeSwitch.tsx
+import React, { useEffect, useState } from "react";
+import { Switch } from "@nextui-org/react";
+import { SunFilledIcon, MoonFilledIcon } from "../global/icons"; // Ajusta la ruta
 
-import { SunFilledIcon, MoonFilledIcon } from "@/components/globales/icons";
-
-export interface ThemeSwitchProps {
-  className?: string;
-  classNames?: SwitchProps["classNames"];
-}
-
-export const ThemeSwitch: FC<ThemeSwitchProps> = ({
-  className,
-  classNames,
-}) => {
-  const [isMounted, setIsMounted] = useState(false);
-
-  const { theme, setTheme } = useTheme();
-
-  const {
-    Component,
-    slots,
-    isSelected,
-    getBaseProps,
-    getInputProps,
-    getWrapperProps,
-  } = useSwitch({
-    isSelected: theme === "light",
-    onChange: () => setTheme(theme === "light" ? "dark" : "light"),
-  });
+export const ThemeSwitch: React.FC = () => {
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, [isMounted]);
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setIsDark(isDarkMode);
 
-  // Prevent Hydration Mismatch
-  if (!isMounted) return <div className="w-6 h-6" />;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => setIsDark(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   return (
-    <Component
-      aria-label={isSelected ? "Switch to dark mode" : "Switch to light mode"}
-      {...getBaseProps({
-        className: clsx(
-          "px-px transition-opacity hover:opacity-80 cursor-pointer",
-          className,
-          classNames?.base,
-        ),
-      })}
-    >
-      <VisuallyHidden>
-        <input {...getInputProps()} />
-      </VisuallyHidden>
-      <div
-        {...getWrapperProps()}
-        className={slots.wrapper({
-          class: clsx(
-            [
-              "w-auto h-auto",
-              "bg-transparent",
-              "rounded-lg",
-              "flex items-center justify-center",
-              "group-data-[selected=true]:bg-transparent",
-              "!text-default-500",
-              "pt-px",
-              "px-0",
-              "mx-0",
-            ],
-            classNames?.wrapper,
-          ),
-        })}
-      >
-        {isSelected ? (
-          <MoonFilledIcon size={22} />
-        ) : (
-          <SunFilledIcon size={22} />
-        )}
-      </div>
-    </Component>
+    <Switch
+      isSelected={isDark}
+      onChange={toggleTheme}
+      thumbIcon={isDark ? <MoonFilledIcon size={16} /> : <SunFilledIcon size={16} />}
+    />
   );
 };
+
+export default ThemeSwitch;
