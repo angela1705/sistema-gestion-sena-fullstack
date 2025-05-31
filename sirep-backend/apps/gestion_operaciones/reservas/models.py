@@ -33,21 +33,4 @@ class Reserva(models.Model):
         """Calcula el total de la reserva (precio x cantidad)"""
         return self.precio.valor * self.cantidad
     
-    #validadicones de cantidad:
-    """
-    def clean(self):
-    if self.cantidad <= 0:
-        raise ValidationError("La cantidad debe ser mayor a cero")
-    if self.cantidad > self.producto.stock:
-        raise ValidationError("No hay suficiente stock disponible")
-        """
     
-    #señales para actualizar el stock:
-    """
-    @receiver(post_save, sender=Reserva)
-    def actualizar_stock(sender, instance, created, **kwargs):
-    if created:
-        producto = instance.producto
-        producto.stock -= instance.cantidad
-        producto.save()
-    """
