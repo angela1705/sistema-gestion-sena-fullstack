@@ -1,4 +1,4 @@
-// src/components/Global/Navbar.tsx
+// src/components/Global/navbar.tsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@mui/material";
@@ -25,27 +25,28 @@ const menuItems: MenuItem[] = [
     subItems: [
       { id: 6, label: "Sede", path: "/entidades/sede" },
       { id: 7, label: "Unidades Empresariales", path: "/entidades/unidades_empresariales" },
+      { id: 8, label: "Empresas SENA", path: "/entidades/empresas-sena" }, // Nueva opción
     ],
   },
   {
-    id: 8,
+    id: 9,
     label: "Gestión Operaciones",
     icon: <FaLeaf />,
     subItems: [
-      { id: 9, label: "Caja Diaria", path: "/gestion_operaciones/caja_diaria" },
-      { id: 10, label: "Detalle Caja", path: "/gestion_operaciones/detalle_caja" },
-      { id: 11, label: "Reservas", path: "/gestion_operaciones/reservas" },
-      { id: 12, label: "Transacciones", path: "/gestion_operaciones/transacciones" },
+      { id: 10, label: "Caja Diaria", path: "/gestion_operaciones/caja_diaria" },
+      { id: 11, label: "Detalle Caja", path: "/gestion_operaciones/detalle_caja" },
+      { id: 12, label: "Reservas", path: "/gestion_operaciones/reservas" },
+      { id: 13, label: "Transacciones", path: "/gestion_operaciones/transacciones" },
     ],
   },
   {
-    id: 13,
+    id: 14,
     label: "Inventario",
     icon: <FaBox />,
     subItems: [
-      { id: 14, label: "Categorías", path: "/inventario/categorias" },
-      { id: 15, label: "Precios", path: "/inventario/precios" },
-      { id: 16, label: "Productos", path: "/inventario/productos" },
+      { id: 15, label: "Categorías", path: "/inventario/categorias" },
+      { id: 16, label: "Precios", path: "/inventario/precios" },
+      { id: 17, label: "Productos", path: "/inventario/productos" },
     ],
   },
 ];
