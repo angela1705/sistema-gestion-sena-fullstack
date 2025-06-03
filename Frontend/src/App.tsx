@@ -7,6 +7,7 @@ import Inicio from "./pages/usuarios/Inicio";
 import Usuarios from "./pages/usuarios/Usuarios";
 import RegistrarUsuario from "./pages/usuarios/RegistrarUsuario";
 import SenaEmpresas from "./pages/entidades/SenaEmpresas"; // Asegúrate de que esta importación esté presente
+import Sedes from "./pages/entidades/Sedes";
 import { useState } from "react";
 import { GlobalStyles } from "./components/global/navbar";
 
@@ -31,7 +32,8 @@ function App() {
           <Route element={<Inicio isNavbarOpen={isOpen} />} path="/Inicio" />
           <Route element={<Usuarios isNavbarOpen={isOpen} />} path="/usuarios" />
           <Route element={<RegistrarUsuario isNavbarOpen={isOpen} />} path="/usuarios/registrar" />
-          <Route element={<SenaEmpresas isNavbarOpen={isOpen} />} path="/entidades/empresas-sena" /> {/* Ruta añadida */}
+          <Route element={<SenaEmpresas isNavbarOpen={isOpen} />} path="/entidades/empresas-sena" />
+          <Route element={<Sedes isNavbarOpen={isOpen} />} path="/entidades/sede" />
         </Routes>
       </div>
     </>
