@@ -22,6 +22,8 @@ from apps.entidades.sena_empresa.api.router import routerSena
 from apps.entidades.sede.api.router import routerSede
 from apps.entidades.unidades_productivas.api.router import routerUnidadP
 from apps.inventario.categorias.api.router import routerCategoria
+from apps.inventario.productos.api.router import routerProducto
+from apps.inventario.precios.api.router import routerPrecio
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,6 +34,8 @@ urlpatterns = [
     path('api/', include(routerSede.urls)),
     path('api/', include(routerUnidadP.urls)),
     path('api/', include(routerCategoria.urls)),
+    path('api/', include(routerProducto.urls)),
+    path('api/', include(routerPrecio.urls)),
     
     
     

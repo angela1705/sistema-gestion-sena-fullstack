@@ -13,6 +13,6 @@ urlpatterns = [
     path('login/', PersonaAuthView.as_view(), name='persona-login'),
     path('me/', CurrentUserView.as_view(), name='persona-me'),
     path('', PersonaListView.as_view(), name='persona-list'),
-    path('<int:pk>/', PersonaDetailView.as_view(), name='persona-detail'),
+    path('int:pk/', PersonaDetailView.as_view(), name='persona-detail'),
     path('responsables/', PersonaResponsableView.as_view(), name='persona-responsables'),
 ]
