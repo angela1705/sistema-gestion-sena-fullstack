@@ -3,20 +3,13 @@ from ..models import Producto
 from apps.inventario.categorias.api.serializer import TipoCategoriaSerializer
 from apps.entidades.unidades_productivas.api.serializer import UnidadProductivaSerializer
 from decimal import Decimal
-from apps.inventario.precios.models import Precio
+
 
 class ProductoSerializer(serializers.ModelSerializer):
     
     categoria_info = TipoCategoriaSerializer(source='categoria', read_only=True)
     unidadP_info = UnidadProductivaSerializer(source='unidadP', read_only=True)
-    
-    
-    precio_final = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        read_only=True
-    )
-    
+    precio_final = serializers.DecimalField(max_digits=10,decimal_places=2,read_only=True)
     
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
     tipo_gestion_display = serializers.CharField(source='get_tipo_gestion_display', read_only=True)
@@ -82,15 +75,21 @@ class ProductoSerializer(serializers.ModelSerializer):
         return PrecioSerializer(precios, many=True).data
 
     def get_precio_para_usuario(self, obj):
-        """Devuelve el precio específico para el usuario actual (si existe)"""
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            precio_personalizado = obj.precio_set.filter(
-                persona=request.user
-            ).first()
+            cargo = getattr(request.user, 'cargo', None)
+            if cargo:
+                precio_personalizado = obj.precio_set.filter(cargo=cargo).first()
             if precio_personalizado:
                 return precio_personalizado.valor
         return obj.precio_final
+
+    
+class ProductoSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Producto
+        fields = ['id', 'nombre', 'precio_final']
+
 
 
 class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
