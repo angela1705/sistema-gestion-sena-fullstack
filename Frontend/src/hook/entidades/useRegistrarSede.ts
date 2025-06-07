@@ -1,69 +1,53 @@
-// src/hook/sedes/useRegistrarSede.ts
 import { useState } from "react";
+import { SedeFormData } from "../../types/entidades/sede";
 
-interface UseRegistrarSede {
-  success: boolean;
-  error: string | null;
-  loading: boolean;
-  registrarSede: (data: any) => Promise<void>;
-  reset: () => void;
-}
-
-export const useRegistrarSede = (url: string): UseRegistrarSede => {
-  const [success, setSuccess] = useState<boolean>(false);
+export const useRegistrarSede = () => {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
 
-  const registrarSede = async (data: any) => {
+  const registrarSede = async (formData: SedeFormData) => {
     setLoading(true);
     setError(null);
-    setSuccess(false);
-
-    console.log("Enviando datos para registrar sede:", data);
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("No se encontró el token de autenticación.");
-        setLoading(false);
-        console.log("Error: Token no encontrado.");
-        return;
-      }
+      if (!token) throw new Error("No autenticado");
 
-      const response = await fetch(url, {
+      const payload = {
+        nombre: formData.nombre,
+        sena_empresa: parseInt(formData.sena_empresa),
+        direccion: formData.direccion,
+        telefono: formData.telefono,
+        responsable: formData.responsable,
+        activa: formData.activa,
+      };
+
+      const response = await fetch("http://localhost:8000/api/sedes/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-
-      console.log("Respuesta del servidor (registrar sede):", response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("Datos del error:", errorData);
-        setError(errorData.detail || JSON.stringify(errorData) || `Error ${response.status}: ${response.statusText}`);
-        setLoading(false);
-        return;
+        throw new Error(
+          errorData.nombre?.[0] || 
+          errorData.sena_empresa?.[0] || 
+          "Error al registrar sede"
+        );
       }
 
-      setSuccess(true);
-      console.log("Registro exitoso de sede.");
-    } catch (err: any) {
-      console.error("Error al registrar sede:", err);
-      setError(err.message || "Error al registrar la sede.");
+      return await response.json();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const reset = () => {
-    setSuccess(false);
-    setError(null);
-    setLoading(false);
-  };
-
-  return { success, error, loading, registrarSede, reset };
+  return { registrarSede, loading, error };
 };
