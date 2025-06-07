@@ -16,6 +16,7 @@ import {
 interface Column {
   uid: string;
   name: string;
+  render?: (data: any, row: any, senaEmpresas: any[]) => React.ReactNode;
 }
 
 interface TablaProps {
@@ -23,19 +24,23 @@ interface TablaProps {
   data: any[];
   searchableFields?: string[];
   extraControls?: React.ReactNode; // Para el botón "Registrar"
+  senaEmpresas?: any[]; // Nueva prop para pasar senaEmpresas
   onRowsPerPageChange?: (value: number) => void;
 }
 
 const Tabla: React.FC<TablaProps> = ({
   columns,
-  data,
+  data = [], // Valor por defecto para evitar errores
   searchableFields = ["nombre"],
   extraControls,
+  senaEmpresas = [],
   onRowsPerPageChange,
 }) => {
   const [filterValue, setFilterValue] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  console.log("Tabla Props - Data:", data, "SenaEmpresas:", senaEmpresas);
 
   const filteredItems = data.filter((item) =>
     searchableFields.some((field) => {
@@ -83,6 +88,7 @@ const Tabla: React.FC<TablaProps> = ({
               className="w-20"
               size="sm"
               onChange={handleRowsPerPageChange}
+              aria-label="filasSelector"
             >
               <SelectItem key="5" value="5">
                 5
@@ -118,18 +124,19 @@ const Tabla: React.FC<TablaProps> = ({
               >
                 {columns.map((column) => (
                   <TableCell key={column.uid} className="text-center text-sm whitespace-nowrap">
-                    {item[column.uid] ?? "N/A"}
+                    {column.render
+                      ? column.render(item[column.uid], item, senaEmpresas)
+                      : item[column.uid] ?? "N/A"}
                   </TableCell>
                 ))}
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        <div className="flex justify-center p-4">
+        <div className="flex justify-center p-2">
           <Pagination
             isCompact
             showControls
-            showShadow
             color="primary"
             page={page}
             total={pages}
