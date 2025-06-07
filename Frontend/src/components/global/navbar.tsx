@@ -24,8 +24,8 @@ const menuItems: MenuItem[] = [
     icon: <FaLeaf />,
     subItems: [
       { id: 6, label: "Sede", path: "/entidades/sede" },
-      { id: 7, label: "Unidades Empresariales", path: "/entidades/unidades_empresariales" },
-      { id: 8, label: "Empresas SENA", path: "/entidades/empresas-sena" }, // Nueva opción
+      { id: 7, label: "Unidades Productivas", path: "/entidades/unidades-productivas" }, // Corregido
+      { id: 8, label: "Empresas SENA", path: "/entidades/empresas-sena" },
     ],
   },
   {
@@ -51,6 +51,7 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+// Resto del código de navbar.tsx sin cambios...
 const Navbar: React.FC<{ isOpen: boolean; toggleSidebar: () => void }> = ({ isOpen, toggleSidebar }) => {
   return (
     <aside

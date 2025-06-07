@@ -1,67 +1,60 @@
-// src/hook/sedes/useSedeOptions.ts
-import { useState, useEffect } from "react";
+// src/hooks/useSedeOptions.ts
+import { useState, useEffect } from 'react';
 
-interface SenaEmpresaOption {
+interface SenaEmpresa {
   id: number;
   nombre: string;
 }
 
-interface UseSedeOptions {
-  nombreOptions: { [key: string]: string };
-  senaEmpresas: SenaEmpresaOption[];
-  isLoading: boolean;
-  error: string | null;
-}
-
-export const useSedeOptions = (): UseSedeOptions => {
-  const [nombreOptions, setNombreOptions] = useState<{ [key: string]: string }>({
-    centro: "Centro",
-    yamboro: "Yamboro",
-  });
-  const [senaEmpresas, setSenaEmpresas] = useState<SenaEmpresaOption[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Iniciar como true para mostrar carga inicial
+export const useSedeOptions = () => {
+  const [senaEmpresas, setSenaEmpresas] = useState<SenaEmpresa[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchOptions = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      const token = localStorage.getItem("token");
+  const fetchEmpresas = async () => {
+    try {
+      const token = localStorage.getItem('token');
       if (!token) {
-        setError("No se encontró el token de autenticación.");
-        setIsLoading(false);
-        console.log("Error: Token no encontrado.");
-        return;
+        throw new Error('No hay token de autenticación');
       }
 
-      try {
-        const empresasResponse = await fetch("http://localhost:8000/api/empresas-sena/", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        console.log("Respuesta cruda de empresas:", empresasResponse);
-
-        if (!empresasResponse.ok) {
-          throw new Error(`Error al cargar empresas SENA: ${empresasResponse.statusText}`);
+      const response = await fetch('http://localhost:8000/api/empresas-sena/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
+      });
 
-        const empresasData = await empresasResponse.json();
-        console.log("Datos de empresas SENA recibidos:", empresasData);
-        setSenaEmpresas(empresasData);
-      } catch (err: any) {
-        console.error("Error al cargar opciones:", err);
-        setError(err.message || "Error al cargar las opciones.");
-      } finally {
-        setIsLoading(false);
+      console.log('Response status:', response.status); // Para debug
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-    };
 
-    fetchOptions();
+      const data = await response.json();
+      console.log('Datos recibidos:', data); // Para verificar los datos
+
+      if (!Array.isArray(data)) {
+        throw new Error('Formato de datos inválido');
+      }
+
+      setSenaEmpresas(data);
+    } catch (err) {
+      console.error('Error al obtener empresas:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setSenaEmpresas([]); // Asegurar array vacío en caso de error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmpresas();
   }, []);
 
-  return { nombreOptions, senaEmpresas, isLoading, error };
+  return { 
+    senaEmpresas, 
+    loading, 
+    error,
+    refetch: fetchEmpresas
+  };
 };

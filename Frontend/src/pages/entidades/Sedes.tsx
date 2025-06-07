@@ -1,55 +1,47 @@
 // src/pages/entidades/Sedes.tsx
-import React, { useEffect, useState } from "react";
-import { useSedes } from "../../hook/entidades/useSedes";
-import { useRegistrarSede } from "../../hook/entidades/useRegistrarSede";
-import { useSedeOptions } from "../../hook/entidades//useSedeOptions";
-import {
-  Button,
-  Card,
-  CardBody,
-  Input,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Switch,
-  Select,
-  SelectItem,
-} from "@nextui-org/react";
-import { useNavigate } from "react-router-dom";
-import Tabla from "../../components/global/Tabla";
-import { FaPlus } from "react-icons/fa";
-
-interface SedesProps {
-  isNavbarOpen: boolean;
-}
+import  { useState } from 'react';
+import { Button, Card, CardBody } from '@nextui-org/react';
+import { FaPlus } from 'react-icons/fa';
+import { useSedes } from '../../hook/entidades/useSedes';
+import { useRegistrarSede } from '../../hook/entidades/useRegistrarSede';
+import { useSedeOptions } from '../../hook/entidades/useSedeOptions';
+import { SedeForm } from '../../components/entidades/SedeForm';
+import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
+import Tabla from '../../components/global/Tabla';
 
 const columns = [
   { uid: "nombre_display", name: "Nombre" },
-  { uid: "sena_empresa_info.nombre", name: "Sena Empresa" },
+  { 
+    uid: "sena_empresa", 
+    name: "Empresa SENA", 
+    render: (data: any, row: any, senaEmpresas: any[]) => {
+      console.log('Render sena_empresa:', { data, row, senaEmpresas }); // Para depuración
+      // Si data es un objeto (sena_empresa_info), usamos su campo nombre
+      if (data && typeof data === 'object' && data.nombre) {
+        return data.nombre;
+      }
+      // Como respaldo, buscamos en senaEmpresas si data es un ID
+      const empresa = senaEmpresas?.find((emp) => emp?.id === parseInt(data));
+      return empresa ? empresa.nombre : "Sin empresa";
+    }
+  },
   { uid: "direccion", name: "Dirección" },
   { uid: "telefono", name: "Teléfono" },
   { uid: "responsable", name: "Responsable" },
   { uid: "activa", name: "Activa" },
-  { uid: "fecha_creacion", name: "Fecha de Creación" },
 ];
 
 const searchableFields = ["nombre_display", "direccion", "responsable"];
 
-const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
-  const { sedes, isLoading, error: fetchError, retry } = useSedes("http://localhost:8000/api/sedes/");
-  const {
-    success,
-    error: registerError,
-    loading: registerLoading,
-    registrarSede,
-    reset,
-  } = useRegistrarSede("http://localhost:8000/api/sedes/");
-  const { nombreOptions, senaEmpresas, isLoading: optionsLoading, error: optionsError } = useSedeOptions();
-  const navigate = useNavigate();
-
+export default function Sedes({ isNavbarOpen }: { isNavbarOpen: boolean }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { sedes, loading: sedesLoading, error: sedesError, refetch } = useSedes();
+  const { registrarSede, loading: registerLoading, error: registerError } = useRegistrarSede();
+  const { senaEmpresas, loading: empresasLoading, error: empresasError } = useSedeOptions();
+
+  console.log('Estado de sedes:', { sedes, sedesLoading, sedesError });
+  console.log('Estado de empresas:', { senaEmpresas, empresasLoading, empresasError });
+
   const [formData, setFormData] = useState({
     nombre: "",
     sena_empresa: "",
@@ -59,16 +51,13 @@ const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
     activa: true,
   });
 
-  // Manejar errores de permisos y redirección
-  useEffect(() => {
-    if (fetchError === "No tienes permisos para ver esta página. Debes ser administrador.") {
-      navigate("/login");
-    }
-  }, [fetchError, navigate]);
+  const handleChange = (field: keyof typeof formData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-  // Manejar registro exitoso
-  useEffect(() => {
-    if (success) {
+  const handleSubmit = async () => {
+    try {
+      await registrarSede(formData);
       setIsModalOpen(false);
       setFormData({
         nombre: "",
@@ -78,74 +67,36 @@ const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
         responsable: "",
         activa: true,
       });
-      reset();
-      retry(); // Actualizar la tabla
+      refetch();
+    } catch (err) {
+      console.error("Error al registrar sede:", err);
     }
-  }, [success, reset, retry]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, activa: checked }));
-  };
-
-  const handleSubmit = async () => {
-    const payload = {
-      nombre: formData.nombre,
-      sena_empresa: parseInt(formData.sena_empresa),
-      direccion: formData.direccion,
-      telefono: formData.telefono,
-      responsable: formData.responsable,
-      activa: formData.activa,
-    };
-
-    console.log("Payload enviado:", payload);
-    await registrarSede(payload);
-  };
-
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    setFormData({
-      nombre: "",
-      sena_empresa: "",
-      direccion: "",
-      telefono: "",
-      responsable: "",
-      activa: true,
-    });
-    reset();
   };
 
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${
-        isNavbarOpen ? "ml-64" : "ml-16"
-      } flex items-center justify-center`}
-    >
+    <div className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${isNavbarOpen ? "ml-64" : "ml-16"} flex items-center justify-center`}>
       <Card className="w-full max-w-5xl">
         <CardBody className="flex flex-col p-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Lista de Sedes</h1>
-          {isLoading && <p className="text-gray-500">Cargando sedes...</p>}
-          {fetchError && <p className="text-red-500 mb-4">{fetchError}</p>}
-          {sedes.length === 0 && !isLoading && !fetchError && (
+          <div className="flex flex-col sm:flex-col justify-start mb-4 gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Lista de Sedes</h1>
+          </div>
+
+          {sedesLoading && <p className="text-gray-500">Cargando sedes...</p>}
+          {sedesError && <p className="text-red-500 mb-4">{sedesError}</p>}
+          {empresasError && <p className="text-red-500 mb-4">Error al cargar empresas: {empresasError}</p>}
+          {sedes?.length === 0 && !sedesLoading && !sedesError && (
             <p className="text-gray-500 mb-4">No hay sedes para mostrar.</p>
           )}
           <Tabla
             columns={columns}
-            data={sedes}
+            data={sedes || []}
             searchableFields={searchableFields}
+            senaEmpresas={senaEmpresas || []}
             extraControls={
               <div className="flex items-center gap-4">
-                <Button
-                  color="primary"
-                  onPress={() => setIsModalOpen(true)}
+                <Button 
+                  onPress={() => setIsModalOpen(true)} 
+                  color="primary" 
                   startContent={<FaPlus />}
                 >
                   Registrar
@@ -153,91 +104,25 @@ const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
               </div>
             }
           />
+
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            <ModalContent>
+              <ModalHeader>Registrar Nueva Sede</ModalHeader>
+              <ModalBody>
+                <SedeForm
+                  formData={formData}
+                  senaEmpresas={senaEmpresas || []}
+                  onChange={handleChange}
+                  onSubmit={handleSubmit}
+                  loading={registerLoading}
+                  error={registerError || empresasError}
+                  empresasLoading={empresasLoading}
+                />
+              </ModalBody>
+            </ModalContent>
+          </Modal>
         </CardBody>
       </Card>
-
-      {/* Modal para el formulario */}
-      <Modal isOpen={isModalOpen} onClose={handleCancel} placement="center">
-        <ModalContent>
-          <ModalHeader>Registrar Nueva Sede</ModalHeader>
-          <ModalBody>
-            {optionsLoading && <p className="text-gray-500">Cargando opciones...</p>}
-            {optionsError && <p className="text-red-500 mb-4">{optionsError}</p>}
-            {registerError && <p className="text-red-500 mb-4">{registerError}</p>}
-            <div className="grid grid-cols-1 gap-4">
-              <Select
-                name="nombre"
-                label="Nombre de la Sede"
-                placeholder="Seleccione un nombre"
-                selectedKeys={formData.nombre ? [formData.nombre] : []}
-                onChange={(e) => handleSelectChange("nombre", e.target.value)}
-                isRequired
-              >
-                {Object.entries(nombreOptions).map(([key, value]) => (
-                  <SelectItem key={key} value={key}>
-                    {value}
-                  </SelectItem>
-                ))}
-              </Select>
-              <Select
-                name="sena_empresa"
-                label="Sena Empresa"
-                placeholder="Seleccione una empresa"
-                selectedKeys={formData.sena_empresa ? [formData.sena_empresa] : []}
-                onChange={(e) => handleSelectChange("sena_empresa", e.target.value)}
-                isRequired
-              >
-                {senaEmpresas.map((empresa) => (
-                  <SelectItem key={empresa.id} value={empresa.id.toString()}>
-                    {empresa.nombre}
-                  </SelectItem>
-                ))}
-              </Select>
-              <Input
-                name="direccion"
-                label="Dirección"
-                value={formData.direccion}
-                onChange={handleInputChange}
-                isRequired
-              />
-              <Input
-                name="telefono"
-                label="Teléfono"
-                value={formData.telefono}
-                onChange={handleInputChange}
-                isRequired
-              />
-              <Input
-                name="responsable"
-                label="Responsable"
-                value={formData.responsable}
-                onChange={handleInputChange}
-              />
-              <div className="flex items-center gap-2">
-                <Switch
-                  isSelected={formData.activa}
-                  onValueChange={handleSwitchChange}
-                />
-                <span>Activa</span>
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" variant="light" onPress={handleCancel}>
-              Cancelar
-            </Button>
-            <Button
-              color="primary"
-              onPress={handleSubmit}
-              isDisabled={registerLoading || optionsLoading}
-            >
-              {registerLoading ? "Guardando..." : "Registrar"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </div>
   );
-};
-
-export default Sedes;
+}
