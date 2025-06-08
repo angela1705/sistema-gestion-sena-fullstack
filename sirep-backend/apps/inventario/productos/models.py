@@ -6,6 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 
 
+
 class Producto(models.Model):
 
     ESTADO_CHOICES = [
@@ -83,3 +84,15 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.get_unidad_medida_base_display()}"
+    
+    
+    def get_precio_para_persona(self, persona):
+        from apps.inventario.precios.models import Precio
+        if persona and persona.cargo:
+            precio_personalizado = Precio.objects.filter(
+                producto=self,
+                cargo=persona.cargo
+            ).first()
+            if precio_personalizado:
+                return precio_personalizado.valor
+        return self.precio_final

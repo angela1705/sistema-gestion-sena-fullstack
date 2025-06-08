@@ -5,6 +5,7 @@ class Rol(models.Model):
         ('consumidor', 'Consumidor'),
         ('pasante', 'Pasante'),
         ('liderup', 'Lider de unidad productiva'),
+        ('vocera', 'Vocera'),
         ('administrador', 'Administrador')
     ]   
     

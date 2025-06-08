@@ -24,6 +24,8 @@ from apps.entidades.unidades_productivas.api.router import routerUnidadP
 from apps.inventario.categorias.api.router import routerCategoria
 from apps.inventario.productos.api.router import routerProducto
 from apps.inventario.precios.api.router import routerPrecio
+from apps.gestion_operaciones.reservas.api.router import routerReserva
+from apps.gestion_operaciones.transaccion.api.router import routerTransaccion
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -36,6 +38,8 @@ urlpatterns = [
     path('api/', include(routerCategoria.urls)),
     path('api/', include(routerProducto.urls)),
     path('api/', include(routerPrecio.urls)),
+    path('api/', include(routerReserva.urls)),
+    path('api/', include(routerTransaccion.urls)),
     
     
     
