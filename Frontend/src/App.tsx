@@ -8,8 +8,10 @@ import Usuarios from './pages/usuarios/Usuarios';
 import RegistrarUsuario from './pages/usuarios/RegistrarUsuario';
 import SenaEmpresas from './pages/entidades/SenaEmpresas';
 import Sedes from './pages/entidades/Sedes';
+import Productos from './pages/inventario/Productos';
 import UnidadesProductivas from './pages/entidades/UnidadesProductivas';
 import Categorias from './pages/inventario/Categorias';
+import Precios from './pages/inventario/Precios';
 import { useState } from 'react';
 import { GlobalStyles } from './components/global/navbar';
 
@@ -36,8 +38,10 @@ function App() {
           <Route element={<RegistrarUsuario isNavbarOpen={isOpen} />} path="/usuarios/registrar" />
           <Route element={<SenaEmpresas isNavbarOpen={isOpen} />} path="/entidades/empresas-sena" />
           <Route element={<Sedes isNavbarOpen={isOpen} />} path="/entidades/sede" />
+          <Route element={<Productos isNavbarOpen={isOpen} />} path="/inventario/productos" />
           <Route element={<UnidadesProductivas isNavbarOpen={isOpen} />} path="/entidades/unidades-productivas" />
           <Route element={<Categorias isNavbarOpen={isOpen} />} path="/inventario/categorias" />
+          <Route element={<Precios isNavbarOpen={isOpen} />} path="/inventario/precios" />
         </Routes>
 
       </div>
