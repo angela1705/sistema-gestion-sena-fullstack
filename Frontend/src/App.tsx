@@ -42,6 +42,7 @@ function App() {
           <Route element={<UnidadesProductivas isNavbarOpen={isOpen} />} path="/entidades/unidades-productivas" />
           <Route element={<Categorias isNavbarOpen={isOpen} />} path="/inventario/categorias" />
           <Route element={<Precios isNavbarOpen={isOpen} />} path="/inventario/precios" />
+
         </Routes>
 
       </div>
