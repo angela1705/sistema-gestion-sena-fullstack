@@ -1,15 +1,16 @@
 // src/App.tsx
-import { Route, Routes, useLocation } from "react-router-dom";
-import Login from "./pages/usuarios/Login";
-import Navbar from "./components/global/navbar";
-import Topbar from "./components/global/Topbar";
-import Inicio from "./pages/usuarios/Inicio";
-import Usuarios from "./pages/usuarios/Usuarios";
-import RegistrarUsuario from "./pages/usuarios/RegistrarUsuario";
-import SenaEmpresas from "./pages/entidades/SenaEmpresas"; // Asegúrate de que esta importación esté presente
-import Sedes from "./pages/entidades/Sedes";
-import { useState } from "react";
-import { GlobalStyles } from "./components/global/navbar";
+import { Route, Routes, useLocation } from 'react-router-dom';
+import Login from './pages/usuarios/Login';
+import Navbar from './components/global/navbar';
+import Topbar from './components/global/Topbar';
+import Inicio from './pages/usuarios/Inicio';
+import Usuarios from './pages/usuarios/Usuarios';
+import RegistrarUsuario from './pages/usuarios/RegistrarUsuario';
+import SenaEmpresas from './pages/entidades/SenaEmpresas';
+import Sedes from './pages/entidades/Sedes';
+import UnidadesProductivas from './pages/entidades/UnidadesProductivas';
+import { useState } from 'react';
+import { GlobalStyles } from './components/global/navbar';
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,7 +20,7 @@ function App() {
     setIsOpen(!isOpen);
   };
 
-  const isLoginPage = location.pathname === "/";
+  const isLoginPage = location.pathname === '/';
 
   return (
     <>
@@ -29,11 +30,12 @@ function App() {
       <div className="flex-grow">
         <Routes>
           <Route element={<Login />} path="/" />
-          <Route element={<Inicio isNavbarOpen={isOpen} />} path="/Inicio" />
+          <Route element={<Inicio isNavbarOpen={isOpen} />} path="/home" />
           <Route element={<Usuarios isNavbarOpen={isOpen} />} path="/usuarios" />
           <Route element={<RegistrarUsuario isNavbarOpen={isOpen} />} path="/usuarios/registrar" />
           <Route element={<SenaEmpresas isNavbarOpen={isOpen} />} path="/entidades/empresas-sena" />
           <Route element={<Sedes isNavbarOpen={isOpen} />} path="/entidades/sede" />
+          <Route element={<UnidadesProductivas isNavbarOpen={isOpen} />} path="/entidades/unidades-productivas" />
         </Routes>
       </div>
     </>
