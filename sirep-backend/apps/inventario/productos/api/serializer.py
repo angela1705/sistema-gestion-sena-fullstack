@@ -76,6 +76,7 @@ class ProductoSerializer(serializers.ModelSerializer):
 
     def get_precio_para_usuario(self, obj):
         request = self.context.get('request')
+        precio_personalizado = None 
         if request and request.user.is_authenticated:
             cargo = getattr(request.user, 'cargo', None)
             if cargo:

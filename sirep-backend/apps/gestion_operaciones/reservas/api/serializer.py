@@ -10,13 +10,14 @@ class ReservaSerializer(serializers.ModelSerializer):
     producto_info = ProductoSerializer(source='producto', read_only=True)
     transaccion_info = TransaccionSerializer(source='transaccion', read_only=True)
 
+
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
 
     class Meta:
         model = Reserva
         fields = [
-            'id', 'persona',
+            'id', 'persona', 'persona_info',
             'producto', 'producto_info',
             'precio_unitario',
             'cantidad', 'total',
