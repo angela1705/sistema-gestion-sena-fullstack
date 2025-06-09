@@ -21,16 +21,16 @@ interface Column {
 
 interface TablaProps {
   columns: Column[];
-  data: any[];
+  data: any[] | { count: number; next: string | null; previous: string | null; results: any[] } | undefined;
   searchableFields?: string[];
-  extraControls?: React.ReactNode; // Para el botón "Registrar"
-  senaEmpresas?: any[]; // Nueva prop para pasar senaEmpresas
+  extraControls?: React.ReactNode;
+  senaEmpresas?: any[];
   onRowsPerPageChange?: (value: number) => void;
 }
 
 const Tabla: React.FC<TablaProps> = ({
   columns,
-  data = [], // Valor por defecto para evitar errores
+  data = [],
   searchableFields = ["nombre"],
   extraControls,
   senaEmpresas = [],
@@ -40,9 +40,11 @@ const Tabla: React.FC<TablaProps> = ({
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  console.log("Tabla Props - Data:", data, "SenaEmpresas:", senaEmpresas);
+  // Normalizar data para que siempre sea un array
+  const normalizedData = Array.isArray(data) ? data : data?.results || [];
+  console.log("Tabla Props - Data:", data, "Normalized Data:", normalizedData, "SenaEmpresas:", senaEmpresas);
 
-  const filteredItems = data.filter((item) =>
+  const filteredItems = normalizedData.filter((item: any) =>
     searchableFields.some((field) => {
       const value = item[field] || "";
       return value.toString().toLowerCase().includes(filterValue.toLowerCase());
@@ -90,15 +92,9 @@ const Tabla: React.FC<TablaProps> = ({
               onChange={handleRowsPerPageChange}
               aria-label="filasSelector"
             >
-              <SelectItem key="5" value="5">
-                5
-              </SelectItem>
-              <SelectItem key="10" value="10">
-                10
-              </SelectItem>
-              <SelectItem key="15" value="15">
-                15
-              </SelectItem>
+              <SelectItem key="5" value="5">5</SelectItem>
+              <SelectItem key="10" value="10">10</SelectItem>
+              <SelectItem key="15" value="15">15</SelectItem>
             </Select>
           </div>
           {extraControls}

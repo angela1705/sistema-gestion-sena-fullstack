@@ -44,6 +44,12 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
   const [cargos, setCargos] = useState<{ id: number; nombre: string }[]>([]);
   const [roles, setRoles] = useState<{ id: number; nombre_display: string }[]>([]);
   const [sedes, setSedes] = useState<{ id: number; nombre_display: string }[]>([]);
+  const [cargosLoading, setCargosLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [sedesLoading, setSedesLoading] = useState(true);
+  const [cargosError, setCargosError] = useState<string | null>(null);
+  const [rolesError, setRolesError] = useState<string | null>(null);
+  const [sedesError, setSedesError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -54,122 +60,149 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
     }
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchCargos = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+  const fetchCargos = async () => {
+    setCargosLoading(true);
+    setCargosError(null);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setCargosError("No hay token de autenticación");
+      setCargosLoading(false);
+      return;
+    }
 
-      try {
-        const response = await fetch("http://localhost:8000/api/cargo/", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Datos de cargos:", data);
-          setCargos(data);
-        } else {
-          console.error("Error al cargar cargos:", response.status, response.statusText);
-        }
-      } catch (err) {
-        console.error("Error al cargar cargos:", err);
+    try {
+      const response = await fetch("http://localhost:8000/api/cargo/", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("Respuesta de /api/cargo/:", response.status, response.ok);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
       }
-    };
+      const data = await response.json();
+      console.log("Datos de cargos:", data);
+      // Normalizar datos
+      const normalizedCargos = Array.isArray(data) ? data : data.results || [];
+      if (!Array.isArray(normalizedCargos)) {
+        throw new Error("Formato de datos inválido");
+      }
+      setCargos(normalizedCargos);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      console.error("Error al cargar cargos:", errorMessage);
+      setCargosError(errorMessage);
+      setCargos([]);
+    } finally {
+      setCargosLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    setRolesLoading(true);
+    setRolesError(null);
+    const token = localStorage.getItem("token");
+    console.log("Token para cargar roles:", token);
+    if (!token) {
+      setRolesError("No hay token de autenticación");
+      setRolesLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/api/rol/", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("Respuesta de /api/rol/:", response.status, response.ok);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+      const data = await response.json();
+      console.log("Datos de roles:", data);
+      // Normalizar datos
+      const normalizedRoles = Array.isArray(data) ? data : data.results || [];
+      if (!Array.isArray(normalizedRoles)) {
+        throw new Error("Formato de datos inválido");
+      }
+      const formattedRoles = normalizedRoles.map((rol: any) => ({
+        id: rol.id,
+        nombre_display: rol.nombre_display || rol.nombre,
+      }));
+      setRoles(formattedRoles);
+      console.log("Roles formateados:", formattedRoles);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      console.error("Error al cargar roles:", errorMessage);
+      setRolesError(errorMessage);
+      setRoles([]);
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
+  const fetchSedes = async () => {
+    setSedesLoading(true);
+    setSedesError(null);
+    const token = localStorage.getItem("token");
+    console.log("Token para cargar sedes:", token);
+    if (!token) {
+      setSedesError("No hay token de autenticación");
+      setSedesLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/api/sedes/", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("Respuesta de /api/sedes/:", response.status, response.ok);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+      const data = await response.json();
+      console.log("Datos de sedes:", data);
+      // Normalizar datos
+      const normalizedSedes = Array.isArray(data) ? data : data.results || [];
+      if (!Array.isArray(normalizedSedes)) {
+        throw new Error("Formato de datos inválido");
+      }
+      const formattedSedes = normalizedSedes.map((sede: any) => ({
+        id: sede.id,
+        nombre_display: sede.nombre_display || sede.nombre,
+      }));
+      setSedes(formattedSedes);
+      console.log("Sedes formateadas:", formattedSedes);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+      console.error("Error al cargar sedes:", errorMessage);
+      setSedesError(errorMessage);
+      setSedes([]);
+    } finally {
+      setSedesLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCargos();
-  }, []);
-
-  useEffect(() => {
-    const fetchRoles = async () => {
-      const token = localStorage.getItem("token");
-      console.log("Token para cargar roles:", token);
-      if (!token) return;
-
-      try {
-        const response = await fetch("http://localhost:8000/api/rol/", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log("Respuesta de /api/rol/:", response.status, response.statusText);
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Datos de roles:", data);
-          const formattedRoles = data.map((rol: any) => ({
-            id: rol.id,
-            nombre_display: rol.nombre_display || rol.nombre,
-          }));
-          setRoles(formattedRoles);
-          console.log("Roles formateados:", formattedRoles);
-        } else {
-          console.error("Error al cargar roles:", response.status, response.statusText);
-        }
-      } catch (err) {
-        console.error("Error al cargar roles:", err);
-      }
-    };
     fetchRoles();
-  }, []);
-
-  useEffect(() => {
-    const fetchSedes = async () => {
-      const token = localStorage.getItem("token");
-      console.log("Token para cargar sedes:", token);
-      if (!token) return;
-
-      try {
-        const response = await fetch("http://localhost:8000/api/sedes/", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log("Respuesta de /api/sede/:", response.status, response.statusText);
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Datos de sedes:", data);
-          const formattedSedes = data.map((sede: any) => ({
-            id: sede.id,
-            nombre_display: sede.nombre_display || sede.nombre,
-          }));
-          setSedes(formattedSedes);
-          console.log("Sedes formateadas:", formattedSedes);
-        } else {
-          console.error("Error al cargar sedes:", response.status, response.statusText);
-        }
-      } catch (err) {
-        console.error("Error al cargar sedes:", err);
-      }
-    };
     fetchSedes();
   }, []);
 
   useEffect(() => {
     if (successCargo) {
-      const fetchCargos = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        try {
-          const response = await fetch("http://localhost:8000/api/cargo/", {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setCargos(data);
-            setNewCargo("");
-            setIsCargoModalOpen(false);
-          }
-        } catch (err) {
-          console.error("Error al cargar cargos:", err);
-        }
-      };
       fetchCargos();
+      setNewCargo("");
+      setIsCargoModalOpen(false);
     }
   }, [successCargo]);
 
@@ -217,7 +250,10 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
       <Card className="w-full max-w-5xl">
         <CardBody className="flex flex-col p-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Registrar Nuevo Usuario</h1>
-          {errorUsuario && <p className="text-red-500 mb-4">{errorUsuario}</p>}
+          {errorUsuario && <p className="text-red-500 mb-4">Error al registrar usuario: {errorUsuario}</p>}
+          {cargosError && <p className="text-red-500 mb-4">Error al cargar cargos: {cargosError}</p>}
+          {rolesError && <p className="text-red-500 mb-4">Error al cargar roles: {rolesError}</p>}
+          {sedesError && <p className="text-red-500 mb-4">Error al cargar sedes: {sedesError}</p>}
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               name="identificacion"
@@ -267,6 +303,8 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               label="Rol"
               selectedKeys={formData.rol ? [formData.rol] : []}
               onChange={(e) => handleSelectChange("rol", e.target.value)}
+              isDisabled={rolesLoading || !!rolesError}
+              placeholder={rolesLoading ? "Cargando roles..." : rolesError ? "Error al cargar roles" : "Seleccione un rol"}
             >
               {roles.map((rol) => (
                 <SelectItem key={rol.id} value={rol.id.toString()}>
@@ -280,6 +318,8 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
                 label="Cargo"
                 selectedKeys={formData.cargo ? [formData.cargo] : []}
                 onChange={(e) => handleSelectChange("cargo", e.target.value)}
+                isDisabled={cargosLoading || !!cargosError}
+                placeholder={cargosLoading ? "Cargando cargos..." : cargosError ? "Error al cargar cargos" : "Seleccione un cargo"}
               >
                 {cargos.map((cargo) => (
                   <SelectItem key={cargo.id} value={cargo.id.toString()}>
@@ -287,7 +327,7 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
                   </SelectItem>
                 ))}
               </Select>
-              <Button color="primary" onPress={() => setIsCargoModalOpen(true)}>
+              <Button color="primary" onPress={() => setIsCargoModalOpen(true)} disabled={cargosLoading || !!cargosError}>
                 +
               </Button>
             </div>
@@ -296,6 +336,8 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               label="Sede"
               selectedKeys={formData.sede ? [formData.sede] : []}
               onChange={(e) => handleSelectChange("sede", e.target.value)}
+              isDisabled={sedesLoading || !!sedesError}
+              placeholder={sedesLoading ? "Cargando sedes..." : sedesError ? "Error al cargar sedes" : "Seleccione una sede"}
             >
               {sedes.map((sede) => (
                 <SelectItem key={sede.id} value={sede.id.toString()}>
@@ -314,7 +356,7 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               <Button color="danger" variant="light" onPress={() => navigate("/usuarios")}>
                 Cancelar
               </Button>
-              <Button type="submit" color="primary" disabled={loadingUsuario}>
+              <Button type="submit" color="primary" disabled={loadingUsuario || cargosLoading || rolesLoading || sedesLoading}>
                 {loadingUsuario ? "Guardando..." : "Guardar"}
               </Button>
             </div>
@@ -326,7 +368,7 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
         <ModalContent>
           <ModalHeader>Registrar Nuevo Cargo</ModalHeader>
           <ModalBody>
-            {errorCargo && <p className="text-red-500 mb-4">{errorCargo}</p>}
+            {errorCargo && <p className="text-red-500 mb-4">Error al registrar cargo: {errorCargo}</p>}
             <Input
               label="Nombre del Cargo"
               value={newCargo}
