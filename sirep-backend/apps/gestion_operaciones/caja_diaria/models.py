@@ -15,3 +15,7 @@ class CajaDiaria(models.Model):
 
     def __str__(self):
         return f"Caja {self.unidadProductiva} - {self.fecha_apertura.date()}"
+    
+    @property
+    def esta_abierta(self):
+        return self.fecha_cierre is None

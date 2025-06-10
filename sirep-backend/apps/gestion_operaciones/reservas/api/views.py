@@ -3,10 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
-
 from ..models import Reserva
 from .serializer import ReservaSerializer, ReservaCreateSerializer
-
 from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
 from apps.gestion_operaciones.detalle_caja.models import DetalleCaja
 from apps.gestion_operaciones.transaccion.models import Transaccion 
@@ -14,6 +12,7 @@ from apps.gestion_operaciones.transaccion.models import TipoTransaccion
 from apps.usuarios.persona.models import Persona
 from apps.gestion_operaciones.detalle_caja.models import Tipo as TipoCaja
 from apps.inventario.productos.models import Producto
+from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
 
 
 class ReservaViewSet(viewsets.ModelViewSet):
@@ -57,28 +56,34 @@ class ReservaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Solo se pueden pagar reservas pendientes'}, status=status.HTTP_400_BAD_REQUEST)
 
         if reserva.transaccion:
-            return Response({'error': 'Esta reserva ya está asociada a una transacción.'}, status=status.HTTP_400_BAD_REQUEST)
+           return Response({'error': 'Esta reserva ya está asociada a una transacción.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        caja_abierta = CajaDiaria.objects.filter(unidad=reserva.producto.unidad, estado='abierta').first()
+        # 🔧 Obtener la caja abierta de la unidad productiva del producto
+        caja_abierta = CajaDiaria.objects.filter(
+        unidadProductiva=reserva.producto.unidadP,
+        fecha_cierre__isnull=True
+        ).first()
 
         if not caja_abierta:
             return Response({'error': 'No hay una caja abierta para esta unidad productiva.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # 💰 Crear la transacción
         transaccion = Transaccion.objects.create(
             tipo=TipoTransaccion.VENTA,
             producto=reserva.producto,
             cantidad=reserva.cantidad,
             usuario=reserva.persona
-        )
+         )
 
+        # 💼 Crear el detalle de caja
         DetalleCaja.objects.create(
             caja_id=caja_abierta,
             transaccion_id=transaccion,
             descripcion=f"Pago de reserva #{reserva.id}",
             tipo=TipoCaja.INGRESO,
-            monto=reserva.total
-        )
+            monto=reserva.total)
 
+        # ✅ Marcar la reserva como pagada
         reserva.estado = 'pagada'
         reserva.transaccion = transaccion
         reserva.save(update_fields=['estado', 'transaccion'])
@@ -87,7 +92,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
             'status': 'Reserva pagada y transacción creada',
             'nuevo_estado': reserva.get_estado_display(),
             'transaccion_id': transaccion.id
-        }, status=status.HTTP_200_OK)
+         }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='reservar-multiples')
     def reservar_multiples(self, request):
