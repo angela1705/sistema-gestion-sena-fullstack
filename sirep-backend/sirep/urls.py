@@ -27,6 +27,7 @@ from apps.inventario.precios.api.router import routerPrecio
 from apps.gestion_operaciones.reservas.api.router import routerReserva
 from apps.gestion_operaciones.transaccion.api.router import routerTransaccion
 from apps.gestion_operaciones.caja_diaria.api.router import routerCajaDiaria
+from apps.gestion_operaciones.detalle_caja.api.router import routerDetalleCaja
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -42,6 +43,7 @@ urlpatterns = [
     path('api/', include(routerReserva.urls)),
     path('api/', include(routerTransaccion.urls)),
     path('api/', include(routerCajaDiaria.urls)),
+    path('api/', include(routerDetalleCaja.urls)),
     
     
     
