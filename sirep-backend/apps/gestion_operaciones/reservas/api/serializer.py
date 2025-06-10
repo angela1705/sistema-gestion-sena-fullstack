@@ -22,7 +22,7 @@ class ReservaSerializer(serializers.ModelSerializer):
             'precio_unitario',
             'cantidad', 'total',
             'fecha_creacion', 'fecha_actualizacion',
-            'estado', 'estado_display',
+            'estado', 'estado_display', 'transaccion',
             'transaccion_info'
         ]
         read_only_fields = [
