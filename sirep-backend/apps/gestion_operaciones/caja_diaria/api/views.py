@@ -3,33 +3,23 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from .filters import CajaDiariaFilter
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from ..models import CajaDiaria
 from .serializer import (
     CajaDiariaSerializer,
     CajaDiariaAperturaSerializer,
     CajaDiariaCierreSerializer
 )
-
 class CajaDiariaViewSet(viewsets.ModelViewSet):
     queryset = CajaDiaria.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = CajaDiariaSerializer
-    filterset_fields = [
-        'unidadProductiva',
-        'abierta_por',
-        'cerrada_por',
-        'esta_abierta'
-    ]
-    search_fields = [
-        'unidadProductiva__nombre',
-        'observaciones'
-    ]
-    ordering_fields = [
-        'fecha_apertura',
-        'fecha_cierre',
-        'saldo_inicial'
-    ]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CajaDiariaFilter  
+    search_fields = ['unidadProductiva__nombre', 'observaciones']
+    ordering_fields = ['fecha_apertura', 'fecha_cierre', 'saldo_inicial']
     ordering = ['-fecha_apertura']
 
     def get_serializer_class(self):
