@@ -1,4 +1,4 @@
-// src/App.tsx
+
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Login from './pages/usuarios/Login';
 import Navbar from './components/global/navbar';
@@ -12,6 +12,10 @@ import Productos from './pages/inventario/Productos';
 import UnidadesProductivas from './pages/entidades/UnidadesProductivas';
 import Categorias from './pages/inventario/Categorias';
 import Precios from './pages/inventario/Precios';
+import Perfil from './pages/usuarios/Perfil';
+import CajaDiaria from './pages/gestion_operativa/CajaDiaria';
+import Reserva from './pages/gestion_operativa/Reserva';
+import ProtectedRoute from './components/global/ProtectedRoute';
 import { useState } from 'react';
 import { GlobalStyles } from './components/global/navbar';
 
@@ -32,19 +36,22 @@ function App() {
       {!isLoginPage && <Navbar isOpen={isOpen} toggleSidebar={toggleSidebar} />}
       <div className="flex-grow">
         <Routes>
-          <Route element={<Login />} path="/" />
-          <Route element={<Inicio isNavbarOpen={isOpen} />} path="/inicio" />
-          <Route element={<Usuarios isNavbarOpen={isOpen} />} path="/usuarios" />
-          <Route element={<RegistrarUsuario isNavbarOpen={isOpen} />} path="/usuarios/registrar" />
-          <Route element={<SenaEmpresas isNavbarOpen={isOpen} />} path="/entidades/empresas-sena" />
-          <Route element={<Sedes isNavbarOpen={isOpen} />} path="/entidades/sede" />
-          <Route element={<Productos isNavbarOpen={isOpen} />} path="/inventario/productos" />
-          <Route element={<UnidadesProductivas isNavbarOpen={isOpen} />} path="/entidades/unidades-productivas" />
-          <Route element={<Categorias isNavbarOpen={isOpen} />} path="/inventario/categorias" />
-          <Route element={<Precios isNavbarOpen={isOpen} />} path="/inventario/precios" />
-
+          <Route path="/" element={<Login />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/inicio" element={<Inicio isNavbarOpen={isOpen} />} />
+            <Route path="/usuarios" element={<Usuarios isNavbarOpen={isOpen} />} />
+            <Route path="/usuarios/registrar" element={<RegistrarUsuario isNavbarOpen={isOpen} />} />
+            <Route path="/entidades/empresas-sena" element={<SenaEmpresas isNavbarOpen={isOpen} />} />
+            <Route path="/entidades/sede" element={<Sedes isNavbarOpen={isOpen} />} />
+            <Route path="/entidades/unidades-productivas" element={<UnidadesProductivas isNavbarOpen={isOpen} />} />
+            <Route path="/inventario/productos" element={<Productos isNavbarOpen={isOpen} />} />
+            <Route path="/inventario/categorias" element={<Categorias isNavbarOpen={isOpen} />} />
+            <Route path="/inventario/precios" element={<Precios isNavbarOpen={isOpen} />} />
+            <Route path="/perfil" element={<Perfil isNavbarOpen={isOpen} />} />
+            <Route path="/gestion_operaciones/caja_diaria" element={<CajaDiaria isNavbarOpen={isOpen} />} />
+            <Route path="/gestion_operaciones/reservas" element={<Reserva isNavbarOpen={isOpen} />} />
+          </Route>
         </Routes>
-
       </div>
     </>
   );
