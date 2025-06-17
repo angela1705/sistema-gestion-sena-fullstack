@@ -1,6 +1,7 @@
 
-// src/components/gestion_operaciones/reserva/ReservaForm.tsx
-import { Button, Input, Select, SelectItem } from '@nextui-org/react';
+// src/components/gestion_operativa/ReservaForm.tsx
+import { Button, Input } from '@nextui-org/react';
+import { Select, SelectItem } from '@heroui/select';
 import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
 
 interface ReservaFormProps {
@@ -43,13 +44,19 @@ export const ReservaForm = ({
           className="w-full"
           isRequired
           isLoading={personasLoading}
-          isDisabled={personasLoading}
+          isDisabled={personasLoading || (personas.length === 0 && !personasLoading)}
         >
-          {personas.map((persona) => (
-            <SelectItem key={persona.id.toString()} value={persona.id}>
-              {persona.first_name}
+          {Array.isArray(personas) && personas.length > 0 ? (
+            personas.map((persona) => (
+              <SelectItem key={persona.id.toString()} textValue={persona.first_name}>
+                {persona.first_name}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem key="no-personas" textValue="No hay personas disponibles" isDisabled>
+              No hay personas disponibles
             </SelectItem>
-          ))}
+          )}
         </Select>
       </div>
 
@@ -62,13 +69,19 @@ export const ReservaForm = ({
           className="w-full"
           isRequired
           isLoading={productosLoading}
-          isDisabled={productosLoading}
+          isDisabled={productosLoading || (productos.length === 0 && !productosLoading)}
         >
-          {productos.map((producto) => (
-            <SelectItem key={producto.id.toString()} value={producto.id}>
-              {producto.nombre}
+          {Array.isArray(productos) && productos.length > 0 ? (
+            productos.map((producto) => (
+              <SelectItem key={producto.id.toString()} textValue={producto.nombre}>
+                {producto.nombre}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem key="no-productos" textValue="No hay productos disponibles" isDisabled>
+              No hay productos disponibles
             </SelectItem>
-          ))}
+          )}
         </Select>
       </div>
 
@@ -94,4 +107,4 @@ export const ReservaForm = ({
       </div>
     </div>
   );
-};
+}

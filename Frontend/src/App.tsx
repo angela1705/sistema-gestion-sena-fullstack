@@ -15,6 +15,8 @@ import Precios from './pages/inventario/Precios';
 import Perfil from './pages/usuarios/Perfil';
 import CajaDiaria from './pages/gestion_operativa/CajaDiaria';
 import Reserva from './pages/gestion_operativa/Reserva';
+import Transaccion from './pages/gestion_operativa/Transaccion';
+import DetalleCaja from './pages/gestion_operativa/DetalleCaja';
 import ProtectedRoute from './components/global/ProtectedRoute';
 import { useState } from 'react';
 import { GlobalStyles } from './components/global/navbar';
@@ -50,6 +52,8 @@ function App() {
             <Route path="/perfil" element={<Perfil isNavbarOpen={isOpen} />} />
             <Route path="/gestion_operaciones/caja_diaria" element={<CajaDiaria isNavbarOpen={isOpen} />} />
             <Route path="/gestion_operaciones/reservas" element={<Reserva isNavbarOpen={isOpen} />} />
+            <Route path="/gestion_operaciones/transacciones" element={<Transaccion isNavbarOpen={isOpen} />} />
+            <Route path="/gestion_operaciones/detalle_caja" element={<DetalleCaja isNavbarOpen={isOpen} />} />
           </Route>
         </Routes>
       </div>

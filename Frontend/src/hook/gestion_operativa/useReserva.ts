@@ -1,7 +1,7 @@
 
-// src/hooks/gestion_operaciones/useReserva.ts
-import { useState, useEffect } from "react";
-import { Reserva } from "../../types/gestion_operativa/reserva";
+// src/hook/gestion_operativa/useReserva.ts
+import { useState, useEffect } from 'react';
+import { Reserva } from '../../types/gestion_operativa/reserva';
 
 export const useReserva = () => {
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -10,9 +10,8 @@ export const useReserva = () => {
 
   const fetchReservas = async () => {
     try {
-      const token = localStorage.getItem("token");
-      console.log("Token:", token);
-      const response = await fetch("http://localhost:8000/api/reservas/", {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/reservas/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -24,12 +23,11 @@ export const useReserva = () => {
       }
 
       const data = await response.json();
-      // Ajuste: Si la API devuelve { results: Reserva[] }, usamos data.results
-      const reservasData = Array.isArray(data) ? data : data.results || data;
+      const reservasData = Array.isArray(data) ? data : data.results || [];
       setReservas(reservasData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error fetching reservas:", err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      console.error('Error fetching reservas:', err);
     } finally {
       setLoading(false);
     }
@@ -39,5 +37,7 @@ export const useReserva = () => {
     fetchReservas();
   }, []);
 
-  return { reservas, loading, error, refetch: fetchReservas };
+  const refetch = () => fetchReservas();
+
+  return { reservas, loading, error, refetch };
 };

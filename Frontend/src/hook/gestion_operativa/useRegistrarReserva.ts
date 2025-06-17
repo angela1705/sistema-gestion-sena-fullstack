@@ -1,8 +1,8 @@
 
-// src/hooks/gestion_operaciones/useRegistrarReserva.ts
-import { useState } from "react";
+// src/hook/gestion_operativa/useRegistrarReserva.ts
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Reserva, ReservaCreateData } from "../../types/gestion_operativa/reserva";
+import { Reserva, ReservaCreateData } from '../../types/gestion_operativa/reserva';
 
 export const useRegistrarReserva = () => {
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export const useRegistrarReserva = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/reservas/", {
+      const response = await fetch('http://localhost:8000/api/reservas/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

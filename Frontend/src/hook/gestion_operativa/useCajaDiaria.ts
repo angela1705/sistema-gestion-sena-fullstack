@@ -1,7 +1,15 @@
 
-// src/hooks/gestion_operaciones/useCajaDiaria.ts
-import { useState, useEffect } from "react";
-import { CajaDiaria } from "../../types/gestion_operativa/caja_diaria";
+// src/hook/gestion_operativa/useCajaDiaria.ts
+import { useState, useEffect } from 'react';
+
+export interface CajaDiaria {
+  id: number;
+  fecha_apertura: string;
+  unidadProductiva_info: { nombre: string };
+  saldo_inicial: number;
+  esta_abierta: boolean;
+  duracion: string;
+}
 
 export const useCajaDiaria = () => {
   const [cajas, setCajas] = useState<CajaDiaria[]>([]);
@@ -10,26 +18,21 @@ export const useCajaDiaria = () => {
 
   const fetchCajas = async () => {
     try {
-      const token = localStorage.getItem("token");
-      console.log("Token:", token);
-      const response = await fetch("http://localhost:8000/api/cajaDiaria/", {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/cajaDiaria/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
-      }
+      if (!response.ok) throw new Error('Error al obtener cajas diarias');
 
       const data = await response.json();
-      // Ajuste: Si la API devuelve { results: CajaDiaria[] }, usamos data.results
-      const cajasData = Array.isArray(data) ? data : data.results || data;
-      setCajas(cajasData);
+      console.log('Datos de cajas:', data);
+      const normalizedData = Array.isArray(data) ? data : data.results || [];
+      setCajas(normalizedData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error fetching cajas:", err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -39,5 +42,7 @@ export const useCajaDiaria = () => {
     fetchCajas();
   }, []);
 
-  return { cajas, loading, error, refetch: fetchCajas };
+  const refetch = () => fetchCajas();
+
+  return { cajas, loading, error, refetch };
 };

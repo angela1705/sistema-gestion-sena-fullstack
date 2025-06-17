@@ -1,43 +1,41 @@
 
-// src/hooks/gestion_operativa/caja_diaria/useRegistrarCaja.ts
-import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import { CajaDiaria } from "../../types/gestion_operativa/caja_diaria";
+// src/hook/gestion_operativa/useRegistrarCaja.ts
+import { useState } from 'react';
+import { CajaDiariaFormData } from '../../types/gestion_operativa/caja_diaria';
 
 export const useRegistrarCaja = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
-  const registrarCaja = async (data: { unidadProductiva: number; saldo_inicial: number; observaciones?: string }) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      setError('No estás autenticado.');
-      return null;
-    }
-
-    setLoading(true);
+  const registrarCaja = async (data: CajaDiariaFormData) => {
     try {
-      const response = await fetch("http://localhost:8000/api/cajaDiaria/", {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No estás autenticado');
+      const response = await fetch('http://localhost:8000/api/cajaDiaria/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          unidadProductiva: parseInt(data.unidadProductiva || '0'),
+          saldo_inicial: parseFloat(data.saldo_inicial || '0'),
+          observaciones: data.observaciones || '',
+        }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
+        throw new Error(`Error al registrar caja: ${errorText}`);
       }
 
-      const newCaja = await response.json();
-      return newCaja as CajaDiaria;
+      const result = await response.json();
+      console.log('Registro exitoso:', result);
+      return result; // Devolver la respuesta para posibles usos futuros
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido.');
-      return null;
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      throw err;
     } finally {
       setLoading(false);
     }
