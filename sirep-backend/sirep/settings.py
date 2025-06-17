@@ -148,12 +148,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]  # Para servir archivos estáticos desde la carpeta static
+STATICFILES_DIRS = [BASE_DIR / "media/uploads"]  # Para servir archivos estáticos desde la carpeta static
 STATIC_ROOT = BASE_DIR / "staticfiles"    # Para recolectar archivos estáticos en producción
-
-# Configuración de archivos de medios (imágenes subidas)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / "media"  # Carpeta donde se guardarán las imágenes subidas
 
 AUTH_USER_MODEL = 'persona.Persona'
 
