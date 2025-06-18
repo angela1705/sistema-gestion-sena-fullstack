@@ -94,10 +94,10 @@ WSGI_APPLICATION = 'sirep.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME':'sirep2.0',
+        'NAME': 'sirep2.0',
         'USER': 'postgres',
         'PASSWORD': '1234',
-        'HOST': 'localhost', 
+        'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
             'client_encoding': 'UTF8',
@@ -147,13 +147,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "media/uploads"]  # Para servir archivos estáticos desde la carpeta static
+STATIC_ROOT = BASE_DIR / "staticfiles"    # Para recolectar archivos estáticos en producción
+
 AUTH_USER_MODEL = 'persona.Persona'
 
 REST_FRAMEWORK = {
-
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination','PAGE_SIZE': 10,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 

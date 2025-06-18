@@ -1,4 +1,5 @@
-// src/hooks/usuarios/useUsuarios.ts
+
+// src/hook/usuarios/useUsuarios.ts
 import { useState, useEffect } from "react";
 import { Persona } from "../../types/usuarios/usuarios";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +11,7 @@ interface UseUsuariosResponse {
   retry: () => void;
 }
 
-export const useUsuarios = (apiUrl: string = "http://localhost:8000/api/usuarios/"): UseUsuariosResponse => {
+export const useUsuarios = (apiUrl: string = "http://localhost:8000/api/personas/"): UseUsuariosResponse => {
   const [usuarios, setUsuarios] = useState<Persona[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export const useUsuarios = (apiUrl: string = "http://localhost:8000/api/usuarios
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error(
-            "No se encontró la lista de usuarios. Verifica que la URL de la API sea correcta (actual: " + apiUrl + ")."
+            "No se encontró la lista de usuarios. Verifica que la URL de la API sea correcta."
           );
         } else if (response.status === 403) {
           throw new Error("No tienes permisos para ver esta página. Debes ser administrador.");

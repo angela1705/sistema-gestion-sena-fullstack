@@ -4,22 +4,20 @@ import { useAuth } from "../../hook/usuarios/useAuth";
 import { LoginCredentials } from "../../types/usuarios/auth";
 import { useNavigate } from "react-router-dom";
 import { TextField, Button, Box, Typography, Alert } from "@mui/material";
-import Toast from "../../components/global/Toast"; // Importa el componente Toast
 
 const LoginForm: React.FC = () => {
-  const [credentials, setCredentials] = useState<LoginCredentials>({ identificacion: "", password: "" });
+  const [credentials, setCredentials] = useState<LoginCredentials>({
+    identificacion: "",
+    password: "",
+  });
   const [validationError, setValidationError] = useState<string | null>(null);
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
-  const [toastState, setToastState] = useState<{ isOpen: boolean; message: string; type: "success" | "error" }>({
-    isOpen: false,
-    message: "",
-    type: "error",
-  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials({ ...credentials, [name]: value });
+
     if (name === "identificacion") {
       const regex = /^[0-9]{6,20}$/;
       if (!regex.test(value) && value !== "") {
@@ -36,78 +34,127 @@ const LoginForm: React.FC = () => {
 
     const result = await login(credentials);
     if (result) {
-      setToastState({
-        isOpen: true,
-        message: "Inicio de sesión exitoso",
-        type: "success",
-      });
-      navigate("/inicio"); // Redirige al usuario a la página de inicio después del login exitoso
-    } else {
-      setToastState({
-        isOpen: true,
-        message: error || "Error al iniciar sesión",
-        type: "error",
-      });
+      navigate("/inicio");
     }
-  };
-
-  const handleCloseToast = () => {
-    setToastState({ ...toastState, isOpen: false });
   };
 
   return (
     <Box
       sx={{
+        minHeight: "100vh",
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
         padding: "20px",
-        maxWidth: "400px",
-        margin: "0 auto",
-        textAlign: "center",
       }}
     >
-      <Typography variant="h4" gutterBottom>
-        Iniciar Sesión
-      </Typography>
-      <form onSubmit={handleSubmit}>
-        <TextField
-          fullWidth
-          id="identificacion"
-          name="identificacion"
-          label="Identificación"
-          value={credentials.identificacion}
-          onChange={handleChange}
-          required
-          margin="normal"
-          error={!!validationError}
-          helperText={validationError}
+      <Box
+        sx={{
+          display: "flex",
+          width: "100%",
+          maxWidth: "1200px",
+          height: "80vh",
+          borderRadius: "20px",
+          overflow: "hidden",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+        }}
+      >
+        <Box
+          sx={{
+            flex: 1,
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
         />
-        <TextField
-          fullWidth
-          id="password"
-          name="password"
-          label="Contraseña"
-          type="password"
-          value={credentials.password}
-          onChange={handleChange}
-          required
-          margin="normal"
-        />
-        {error && <Alert severity="error" sx={{ marginBottom: "10px" }}>{error}</Alert>}
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          disabled={isLoading || !!validationError}
-          sx={{ marginTop: "10px", padding: "10px 20px" }}
+        <Box
+          sx={{
+            flex: 1,
+            backgroundColor: "rgba(255, 255, 255, 0.85)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "40px",
+            textAlign: "center",
+          }}
         >
-          {isLoading ? "Cargando..." : "Iniciar Sesión"}
-        </Button>
-      </form>
-      <Toast
-        message={toastState.message}
-        type={toastState.type}
-        isOpen={toastState.isOpen}
-        onClose={handleCloseToast}
-      />
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "#333" }}>
+            Iniciar Sesión
+          </Typography>
+          <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
+            <TextField
+              fullWidth
+              id="identificacion"
+              name="identificacion"
+              label="Identificación"
+              value={credentials.identificacion}
+              onChange={handleChange}
+              required
+              margin="normal"
+              error={!!validationError}
+              helperText={validationError}
+              sx={{
+                "& .MuiInputBase-root": { borderRadius: "10px" },
+                "& .MuiInputLabel-root": { color: "#333" },
+                "& .MuiInputBase-input": { color: "#333" },
+                "& .MuiFormHelperText-root": { color: "#f44336" },
+              }}
+            />
+            <TextField
+              fullWidth
+              id="password"
+              name="password"
+              label="Contraseña"
+              type="password"
+              value={credentials.password}
+              onChange={handleChange}
+              required
+              margin="normal"
+              sx={{
+                "& .MuiInputBase-root": { borderRadius: "10px" },
+                "& .MuiInputLabel-root": { color: "#333" },
+                "& .MuiInputBase-input": { color: "#333" },
+              }}
+            />
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mt: 2,
+                  mb: 2,
+                  borderRadius: "10px",
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  color: "#fff",
+                  fontWeight: "bold",
+                }}
+              >
+                {error}
+              </Alert>
+            )}
+            <Button
+              type="submit"
+              variant="contained"
+              color="error"
+              disabled={isLoading || !!validationError}
+              sx={{
+                marginTop: "10px",
+                padding: "12px 30px",
+                borderRadius: "20px",
+                fontWeight: "bold",
+                textTransform: "none",
+              }}
+            >
+              {isLoading ? "Cargando..." : "Iniciar Sesión"}
+            </Button>
+          </form>
+        </Box>
+      </Box>
     </Box>
   );
 };
