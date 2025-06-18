@@ -32,7 +32,8 @@ class Producto(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     precio_descuento = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, editable=False)
-    imagen = models.ImageField(upload_to='producto_images/', null=True, blank=True) 
+ 
+    imagen = models.ImageField(upload_to='uploads/', null=True, blank=True)
 
     unidad_medida_base = models.CharField(
         max_length=10,

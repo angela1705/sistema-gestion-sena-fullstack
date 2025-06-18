@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
 from apps.usuarios.rol.api.router import routerRol
 from apps.usuarios.cargo.api.router import routerCargo
 from apps.entidades.sena_empresa.api.router import routerSena
@@ -28,6 +28,8 @@ from apps.gestion_operaciones.reservas.api.router import routerReserva
 from apps.gestion_operaciones.transaccion.api.router import routerTransaccion
 from apps.gestion_operaciones.caja_diaria.api.router import routerCajaDiaria
 from apps.gestion_operaciones.detalle_caja.api.router import routerDetalleCaja
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -44,7 +46,9 @@ urlpatterns = [
     path('api/', include(routerTransaccion.urls)),
     path('api/', include(routerCajaDiaria.urls)),
     path('api/', include(routerDetalleCaja.urls)),
-    
-    
-    
 ]
+
+# Sirve archivos estáticos y medios en desarrollo
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

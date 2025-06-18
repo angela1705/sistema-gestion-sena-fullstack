@@ -1,0 +1,137 @@
+
+// src/pages/gestion_operaciones/transaccion/Transaccion.tsx
+import { useState } from 'react';
+import { Button, Card, CardBody } from '@nextui-org/react';
+import { FaPlus } from 'react-icons/fa';
+import { useTransaccion } from '../../hook/gestion_operativa/useTransaccion';
+import { useRegistrarTransaccion } from '../../hook/gestion_operativa/useRegistrarTransaccion';
+import { useUsuarios } from '../../hook/usuarios/useUsuarios';
+import { TransaccionForm } from '../../components/gestion_operativa/TransaccionForm';
+import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
+import Tabla from '../../components/global/Tabla';
+import { TransaccionCreateData } from '../../types/gestion_operativa/transaccion';
+
+const columns = [
+  { uid: 'fecha', name: 'Fecha' },
+  { uid: 'tipo', name: 'Tipo de Transacción' },
+  { uid: 'cantidad', name: 'Cantidad' },
+  { uid: 'usuario_info.first_name', name: 'Usuario', render: (data: any) => data?.first_name || 'Sin usuario' },
+  { uid: 'estado', name: 'Estado' },
+  {
+    uid: 'acciones',
+    name: 'Acciones',
+    render: (row: any) => (
+      row.estado === 'pendiente' ? (
+        <Button color="danger" onPress={() => handleOpenModal(row.id, false)}>Cancelar</Button>
+      ) : null
+    ),
+  },
+];
+
+const searchableFields = ['tipo', 'usuario_info.first_name'];
+
+export default function Transaccion({ isNavbarOpen }: { isNavbarOpen: boolean }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { transacciones, loading: transaccionesLoading, error: transaccionesError, refetch } = useTransaccion();
+  const { registrarTransaccion, loading: registerLoading, error: registerError } = useRegistrarTransaccion();
+  const { usuarios, loading: usuariosLoading, error: usuariosError } = useUsuarios();
+  const [selectedTransaccionId, setSelectedTransaccionId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<TransaccionCreateData>({
+    tipo: '',
+    cantidad: undefined,
+    usuario: undefined,
+  });
+
+  console.log('Estado de transacciones:', { transacciones, transaccionesLoading, transaccionesError });
+  console.log('Usuarios:', { usuarios, usuariosLoading, usuariosError });
+
+  const handleChange = (field: keyof TransaccionCreateData, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (!isModalOpen) return;
+      if (selectedTransaccionId === null && formData.tipo && formData.cantidad !== undefined && formData.usuario !== undefined) {
+        await registrarTransaccion({
+          tipo: formData.tipo,
+          cantidad: formData.cantidad,
+          usuario: formData.usuario,
+        });
+      } else if (selectedTransaccionId) {
+        // Lógica para cancelar transacción (ajustar según backend)
+      }
+      setIsModalOpen(false);
+      setFormData({
+        tipo: '',
+        cantidad: undefined,
+        usuario: undefined,
+      });
+      await refetch();
+      console.log('Después de refetch, transacciones:', transacciones);
+    } catch (err) {
+      console.error('Error al procesar transacción:', err);
+    }
+  };
+
+  const handleOpenModal = (transaccionId: number | null, isRegister: boolean) => {
+    setSelectedTransaccionId(transaccionId);
+    setIsModalOpen(true);
+  };
+
+  return (
+    <div
+      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${
+        isNavbarOpen ? 'ml-64' : 'ml-16'
+      } flex items-center justify-center`}
+    >
+      <Card className="w-full max-w-5xl">
+        <CardBody className="flex flex-col p-6">
+          <div className="flex flex-col sm:flex-col justify-start mb-4 gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Listado de Transacciones</h1>
+          </div>
+
+          {transaccionesLoading && <p className="text-gray-500">Cargando transacciones...</p>}
+          {transaccionesError && <p className="text-red-500 mb-4">{transaccionesError}</p>}
+          {usuariosError && <p className="text-red-500 mb-4">{usuariosError}</p>}
+          {transacciones && transacciones.length === 0 && !transaccionesLoading && !transaccionesError && (
+            <p className="text-gray-500 mb-4">No hay transacciones para mostrar.</p>
+          )}
+          <Tabla
+            columns={columns}
+            data={transacciones || []}
+            searchableFields={searchableFields}
+            extraControls={
+              <div className="flex items-center gap-4">
+                <Button
+                  onPress={() => handleOpenModal(null, true)}
+                  color="primary"
+                  startContent={<FaPlus />}
+                >
+                  Registrar
+                </Button>
+              </div>
+            }
+          />
+
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} className="flex items-center justify-center">
+            <ModalContent>
+              <ModalHeader>Registrar Nueva Transacción</ModalHeader>
+              <ModalBody>
+                <TransaccionForm
+                  formData={formData}
+                  usuarios={usuarios}
+                  onChange={handleChange}
+                  onSubmit={handleSubmit}
+                  loading={registerLoading}
+                  error={registerError || usuariosError}
+                  usuariosLoading={usuariosLoading}
+                />
+              </ModalBody>
+            </ModalContent>
+          </Modal>
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
