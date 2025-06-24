@@ -1,119 +1,101 @@
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from django.db import models
-from django.db.models import Sum, Q
-
-from ..models import Transaccion, TipoTransaccion
-from .serializer import TransaccionSerializer, TransaccionCreateSerializer
+from ..models import Transaccion
+from .serializer import TransaccionSerializer
+from apps.usuarios.persona.models import Persona
+from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
+from django.db import transaction
 
 class TransaccionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar transacciones de inventario con:
-    - Validación de stock
-    - Control de tipos de transacción
-    - Actualización automática de inventario
-    """
-    queryset = Transaccion.objects.all()
+    queryset = Transaccion.objects.all().order_by('-fecha')
+    serializer_class = TransaccionSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = {
-        'tipo': ['exact'],
-        'producto': ['exact'],
-        'usuario': ['exact'],
-        'fecha': ['date', 'gte', 'lte']
-    }
-    search_fields = ['producto__nombre', 'usuario__username']
-    ordering_fields = ['fecha', 'cantidad', 'producto__nombre']
-    ordering = ['-fecha']
-
-    def get_serializer_class(self):
-        return TransaccionCreateSerializer if self.action == 'create' else TransaccionSerializer
+    http_method_names = ['get', 'post', 'retrieve', 'list']  
 
     def get_queryset(self):
+        """
+        Filtra las transacciones según la unidad productiva del usuario
+        """
         queryset = super().get_queryset()
-        if not self.request.user.is_superuser:
-            queryset = queryset.filter(usuario=self.request.user)
-        return queryset.select_related('producto', 'usuario')
+        user = self.request.user
+        
+        if not hasattr(user, 'persona'):
+            return Transaccion.objects.none()
+            
+        unidad_productiva = user.persona.unidadP
+        return queryset.filter(usuario__unidadP=unidad_productiva)
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """
+        Crea una nueva transacción con manejo de errores específicos
+        """
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def perform_create(self, serializer):
-        serializer.save(usuario=self.request.user)
+        """
+        Asigna automáticamente el usuario actual a la transacción
+        """
+        user_persona = getattr(self.request.user, 'persona', None)
+        if not user_persona:
+            raise serializer.ValidationError("Usuario no tiene perfil de persona asociado")
+        
+        serializer.save(usuario=user_persona)
 
-    @action(detail=False, methods=['get'], url_path='resumen')
-    def resumen_por_tipo(self, request):
+    def list(self, request, *args, **kwargs):
         """
-        Devuelve un resumen de transacciones por tipo:
-        {
-            "venta": 10,
-            "compra": 5,
-            "devolucion": 2
-        }
+        Lista transacciones con filtros opcionales por tipo y fecha
         """
-        resumen = (
-            Transaccion.objects.filter(usuario=request.user)
-            .values_list('tipo')
-            .annotate(total=models.Count('id'))
-        )
-        return Response({item[0]: item[1] for item in resumen})
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Filtros
+        tipo = request.query_params.get('tipo', None)
+        fecha_inicio = request.query_params.get('fecha_inicio', None)
+        fecha_fin = request.query_params.get('fecha_fin', None)
+        
+        if tipo in [Transaccion.VENTA, Transaccion.COMPRA]:
+            queryset = queryset.filter(tipo=tipo)
+        
+        if fecha_inicio:
+            queryset = queryset.filter(fecha__gte=fecha_inicio)
+        
+        if fecha_fin:
+            queryset = queryset.filter(fecha__lte=fecha_fin)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='por-producto')
-    def por_producto(self, request):
-        """
-        Devuelve totales agrupados por producto (ventas y compras).
-        """
-        transacciones = (
-            Transaccion.objects.filter(usuario=request.user)
-            .values('producto__id', 'producto__nombre')
-            .annotate(
-                total_vendido=Sum('cantidad', filter=Q(tipo=TipoTransaccion.VENTA)),
-                total_comprado=Sum('cantidad', filter=Q(tipo=TipoTransaccion.COMPRA))
-            )
-        )
-        return Response(transacciones)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], url_path='revertir')
-    def revertir(self, request, pk=None):
+    def retrieve(self, request, *args, **kwargs):
         """
-        Revertir una transacción: crea una transacción opuesta.
+        Obtiene los detalles de una transacción específica
         """
-        transaccion = self.get_object()
-
-        # Bloquea si ya fue revertida
-        if transaccion.transaccion_revertida_id:
+        instance = self.get_object()
+        
+        # Verificar que la transacción pertenezca a la unidad del usuario
+        user_unidad = request.user.persona.unidadP
+        if instance.usuario.unidadP != user_unidad:
             return Response(
-                {"error": "Esta transacción ya fue revertida"},
-                status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'No encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
             )
-
-        # Bloquea reversión de ajustes
-        if transaccion.tipo == TipoTransaccion.AJUSTE:
-            return Response(
-                {"error": "No se pueden revertir transacciones de tipo AJUSTE"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Mapeo de tipos opuestos
-        tipo_opuesto = {
-            TipoTransaccion.VENTA: TipoTransaccion.DEVOLUCION,
-            TipoTransaccion.COMPRA: TipoTransaccion.VENTA,
-            TipoTransaccion.DEVOLUCION: TipoTransaccion.VENTA
-        }
-
-        # Crea transacción opuesta
-        nueva_transaccion = Transaccion.objects.create(
-            tipo=tipo_opuesto[transaccion.tipo],
-            producto=transaccion.producto,
-            cantidad=transaccion.cantidad,
-            usuario=request.user
-        )
-
-        # Relaciona ambas transacciones
-        transaccion.transaccion_revertida = nueva_transaccion
-        transaccion.save()
-
-        return Response({
-            "status": "Transacción revertida exitosamente",
-            "nueva_transaccion_id": nueva_transaccion.id
-        }, status=status.HTTP_201_CREATED)
+            
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
