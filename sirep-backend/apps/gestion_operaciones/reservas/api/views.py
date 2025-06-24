@@ -8,7 +8,7 @@ from .serializer import ReservaSerializer, ReservaCreateSerializer
 from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
 from apps.gestion_operaciones.detalle_caja.models import DetalleCaja
 from apps.gestion_operaciones.transaccion.models import Transaccion 
-from apps.gestion_operaciones.transaccion.models import TipoTransaccion  
+from apps.gestion_operaciones.transaccion.models import Transaccion  
 from apps.usuarios.persona.models import Persona
 from apps.gestion_operaciones.detalle_caja.models import Tipo as TipoCaja
 from apps.inventario.productos.models import Producto
@@ -27,6 +27,9 @@ class ReservaViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return ReservaCreateSerializer
         return ReservaSerializer
+    
+    def perform_create(self, serializer):
+        serializer.save(persona=self.request.user) #para evitar colocar persona , o sea que solo tenga en cuenta el token
 
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):
@@ -69,7 +72,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
         # 💰 Crear la transacción
         transaccion = Transaccion.objects.create(
-            tipo=TipoTransaccion.VENTA,
+            tipo=Transaccion.VENTA,
             producto=reserva.producto,
             cantidad=reserva.cantidad,
             usuario=reserva.persona
