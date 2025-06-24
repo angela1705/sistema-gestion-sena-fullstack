@@ -27,6 +27,9 @@ class ReservaViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return ReservaCreateSerializer
         return ReservaSerializer
+    
+    def perform_create(self, serializer):
+        serializer.save(persona=self.request.user) #para evitar colocar persona , o sea que solo tenga en cuenta el token
 
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):

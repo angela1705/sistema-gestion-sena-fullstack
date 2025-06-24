@@ -62,6 +62,11 @@ class ReservaCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         producto = validated_data['producto']
         persona = validated_data.get('persona')
+
+        # Si no viene en el validated_data, la vista la habrá asignado
+        if not persona and self.context.get('request'):
+            persona = self.context['request'].user
+
         
         # Lógica para calcular el precio según la persona
         validated_data['precio_unitario'] = producto.get_precio_para_persona(persona)
