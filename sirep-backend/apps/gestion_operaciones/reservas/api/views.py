@@ -3,20 +3,20 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from ..models import Reserva
 from .serializer import ReservaSerializer, ReservaCreateSerializer
 from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
 from apps.gestion_operaciones.detalle_caja.models import DetalleCaja
-from apps.gestion_operaciones.transaccion.models import Transaccion 
-from apps.gestion_operaciones.transaccion.models import Transaccion  
+from apps.gestion_operaciones.transaccion.models import Transaccion
 from apps.usuarios.persona.models import Persona
 from apps.gestion_operaciones.detalle_caja.models import Tipo as TipoCaja
 from apps.inventario.productos.models import Producto
-from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
-
 
 class ReservaViewSet(viewsets.ModelViewSet):
     queryset = Reserva.objects.all()
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     filterset_fields = ['persona', 'producto', 'estado', 'fecha_creacion', 'fecha_actualizacion']
     search_fields = ['producto__nombre']
@@ -29,7 +29,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         return ReservaSerializer
     
     def perform_create(self, serializer):
-        serializer.save(persona=self.request.user) #para evitar colocar persona , o sea que solo tenga en cuenta el token
+        serializer.save(persona=self.request.user)
 
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):
@@ -59,34 +59,35 @@ class ReservaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Solo se pueden pagar reservas pendientes'}, status=status.HTTP_400_BAD_REQUEST)
 
         if reserva.transaccion:
-           return Response({'error': 'Esta reserva ya está asociada a una transacción.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Esta reserva ya está asociada a una transacción.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 🔧 Obtener la caja abierta de la unidad productiva del producto
+        # Obtener la caja abierta de la unidad productiva del producto
         caja_abierta = CajaDiaria.objects.filter(
-        unidadProductiva=reserva.producto.unidadP,
-        fecha_cierre__isnull=True
+            unidadProductiva=reserva.producto.unidadP,
+            fecha_cierre__isnull=True
         ).first()
 
         if not caja_abierta:
             return Response({'error': 'No hay una caja abierta para esta unidad productiva.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 💰 Crear la transacción
+        # Crear la transacción
         transaccion = Transaccion.objects.create(
             tipo=Transaccion.VENTA,
             producto=reserva.producto,
             cantidad=reserva.cantidad,
             usuario=reserva.persona
-         )
+        )
 
-        # 💼 Crear el detalle de caja
+        # Crear el detalle de caja
         DetalleCaja.objects.create(
             caja_id=caja_abierta,
             transaccion_id=transaccion,
             descripcion=f"Pago de reserva #{reserva.id}",
             tipo=TipoCaja.INGRESO,
-            monto=reserva.total)
+            monto=reserva.total
+        )
 
-        # ✅ Marcar la reserva como pagada
+        # Marcar la reserva como pagada
         reserva.estado = 'pagada'
         reserva.transaccion = transaccion
         reserva.save(update_fields=['estado', 'transaccion'])
@@ -95,34 +96,47 @@ class ReservaViewSet(viewsets.ModelViewSet):
             'status': 'Reserva pagada y transacción creada',
             'nuevo_estado': reserva.get_estado_display(),
             'transaccion_id': transaccion.id
-         }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
 
+    @csrf_exempt
     @action(detail=False, methods=['post'], url_path='reservar-multiples')
     def reservar_multiples(self, request):
         """Permite a una vocera reservar un producto para varias personas de su ficha"""
         user = request.user
 
-        if not user.rol.nombre.lower() == 'vocera':
-            return Response({'error': 'Solo las voceras pueden hacer reservas múltiples.'}, status=status.HTTP_403_FORBIDDEN)
+        # Verificación mejorada del rol
+        if not hasattr(user, 'rol') or not hasattr(user.rol, 'nombre') or str(user.rol.nombre).lower() != 'vocera':
+            return Response(
+                {'error': 'Solo las voceras pueden hacer reservas múltiples.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         producto_id = request.data.get('producto')
         cantidad = request.data.get('cantidad')
         personas_ids = request.data.get('personas', [])
 
-        if not producto_id or not cantidad or not personas_ids:
-            return Response({'error': 'Debes enviar producto, cantidad y lista de personas.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Validación más robusta
+        if not all([producto_id, cantidad, personas_ids]):
+            return Response(
+                {'error': 'Debes enviar producto, cantidad y lista de personas.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            producto = Producto.objects.get(pk=producto_id)
+            producto = Producto.objects.get(pk=producto_id, estado='disponible', reservas=True)
+            cantidad = int(cantidad)
+            if cantidad <= 0:
+                raise ValueError
         except Producto.DoesNotExist:
-            return Response({'error': 'Producto no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 🛑 Validar si el producto está activo
-        if not producto.activo:
-            return Response({'error': 'El producto no está activo.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if int(cantidad) <= 0:
-            return Response({'error': 'La cantidad debe ser mayor a cero.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Producto no encontrado o no está activo.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValueError:
+            return Response(
+                {'error': 'La cantidad debe ser un número entero mayor a cero.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         reservas_creadas = []
         errores = []
@@ -130,28 +144,52 @@ class ReservaViewSet(viewsets.ModelViewSet):
         for persona_id in personas_ids:
             try:
                 persona = Persona.objects.get(pk=persona_id)
-            except Persona.DoesNotExist:
-                errores.append({'persona_id': persona_id, 'error': 'Persona no encontrada'})
-                continue
+                
+                if not hasattr(user, 'numFicha') or not hasattr(persona, 'numFicha') or persona.numFicha != user.numFicha:
+                    errores.append({
+                        'persona_id': persona_id,
+                        'error': 'No pertenece a la misma ficha que la vocera'
+                    })
+                    continue
 
-            if not user.numFicha or persona.numFicha != user.numFicha:
+                data = {
+                    'persona': persona.id, 
+                    'producto': producto_id, 
+                    'cantidad': cantidad
+                }
+                
+                serializer = ReservaCreateSerializer(
+                    data=data,
+                    context={'request': request}
+                )
+                
+                if serializer.is_valid():
+                    reserva = serializer.save()
+                    reservas_creadas.append(ReservaSerializer(reserva).data)
+                else:
+                    errores.append({
+                        'persona_id': persona_id,
+                        'error': serializer.errors
+                    })
+
+            except Persona.DoesNotExist:
                 errores.append({
-                    'persona_id': persona_id,
-                    'error': 'No pertenece a la misma ficha que la vocera'
+                    'persona_id': persona_id, 
+                    'error': 'Persona no encontrada'
+                })
+                continue
+            except Exception as e:
+                errores.append({
+                    'persona_id': persona_id, 
+                    'error': str(e)
                 })
                 continue
 
-            data = {'persona': persona.id, 'producto': producto_id, 'cantidad': cantidad}
-            serializer = ReservaCreateSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                reservas_creadas.append(serializer.data)
-            else:
-                errores.append({'persona_id': persona_id, 'error': serializer.errors})
-
+        status_code = status.HTTP_201_CREATED if reservas_creadas else status.HTTP_400_BAD_REQUEST
+        
         return Response({
             'mensaje': 'Proceso terminado',
             'total_reservas': len(reservas_creadas),
             'reservas_creadas': reservas_creadas,
             'errores': errores
-        }, status=status.HTTP_201_CREATED if reservas_creadas else status.HTTP_400_BAD_REQUEST)
+        }, status=status_code)
