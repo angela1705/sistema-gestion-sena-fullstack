@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Producto } from '../../types/inventario/Producto';
 
@@ -29,7 +28,9 @@ export const useProductos = () => {
       const data = await response.json();
       console.log('Datos de productos:', data);
       const normalizedData = Array.isArray(data) ? data : data.results || [];
-      setProductos(normalizedData);
+      setProductos(normalizedData.map((item: any) => ({
+        ...item,
+      })));
       setError(null); // Limpiar error si la petición es exitosa
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar productos';

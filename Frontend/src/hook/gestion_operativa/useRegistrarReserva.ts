@@ -1,5 +1,3 @@
-
-// src/hook/gestion_operativa/useRegistrarReserva.ts
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Reserva, ReservaCreateData } from '../../types/gestion_operativa/reserva';
@@ -19,11 +17,16 @@ export const useRegistrarReserva = () => {
 
     setLoading(true);
     try {
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1] || '';
       const response = await fetch('http://localhost:8000/api/reservas/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
+          'X-CSRFToken': csrfToken, // Para manejar CSRF si el servidor lo requiere
         },
         body: JSON.stringify(data),
       });

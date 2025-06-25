@@ -1,8 +1,5 @@
-
-// src/pages/gestion_operaciones/reserva/Reserva.tsx
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
-import { FaPlus } from 'react-icons/fa';
 import { useReserva } from '../../hook/gestion_operativa/useReserva';
 import { useRegistrarReserva } from '../../hook/gestion_operativa/useRegistrarReserva';
 import { useUsuarios } from '../../hook/usuarios/useUsuarios';
@@ -14,16 +11,16 @@ import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
 
 const columns = [
   { uid: 'fecha_creacion', name: 'Fecha Creación' },
-  { uid: 'persona_info.first_name', name: 'Persona', render: (data: any) => data?.first_name || 'Sin nombre' },
-  { uid: 'producto_info.nombre', name: 'Producto', render: (data: any) => data?.nombre || 'Sin producto' },
+  { uid: 'persona_info', name: 'Persona', render: (data: any) => data?.first_name || 'Sin nombre' },
+  { uid: 'producto_info', name: 'Producto', render: (data: any) => data?.nombre || 'Sin producto' },
   { uid: 'cantidad', name: 'Cantidad' },
   { uid: 'total', name: 'Total' },
   { uid: 'estado_display', name: 'Estado' },
   {
     uid: 'acciones',
     name: 'Acciones',
-    render: (row: any) => {
-      if (!row || typeof row.estado === 'undefined') return null;
+    render: (_data: any, row: any) => {
+      if (!row || typeof row.estado === 'undefined' || !row.id || typeof row.id !== 'number') return null;
       return row.estado === 'pendiente' ? (
         <Button color="danger" onPress={() => handleOpenModal(row.id, false)}>Cancelar</Button>
       ) : null;
@@ -37,18 +34,18 @@ export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { reservas, loading: reservasLoading, error: reservasError, refetch } = useReserva();
   const { registrarReserva, loading: registerLoading, error: registerError } = useRegistrarReserva();
-  const { usuarios, loading: personasLoading, error: personasError } = useUsuarios();
+  // Proteger useUsuarios contra fallos
+  const usuariosData = useUsuarios();
+  const { usuarios, loading: personasLoading, error: personasError } = usuariosData || { usuarios: [], loading: false, error: null };
   const { productos, loading: productosLoading, error: productosError } = useProductos();
   const [selectedReservaId, setSelectedReservaId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ReservaCreateData>({
-    persona: undefined,
-    producto: undefined,
-    cantidad: undefined,
+    persona: 0, // Valor por defecto numérico
+    producto: 0,
+    cantidad: 0,
   });
 
-  console.log('Estado de reservas:', { reservas, reservasLoading, reservasError });
-  console.log('Personas:', { usuarios, personasLoading, personasError });
-  console.log('Productos:', { productos, productosLoading, productosError });
+  console.log('Reservas recibidas:', reservas);
 
   const handleChange = (field: keyof ReservaCreateData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -57,7 +54,7 @@ export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
   const handleSubmit = async () => {
     try {
       if (!isModalOpen) return;
-      if (selectedReservaId === null && formData.persona !== undefined && formData.producto !== undefined && formData.cantidad !== undefined) {
+      if (selectedReservaId === null && formData.persona !== 0 && formData.producto !== 0 && formData.cantidad !== 0) {
         await registrarReserva({
           persona: formData.persona,
           producto: formData.producto,
@@ -68,19 +65,18 @@ export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
       }
       setIsModalOpen(false);
       setFormData({
-        persona: undefined,
-        producto: undefined,
-        cantidad: undefined,
+        persona: 0,
+        producto: 0,
+        cantidad: 0,
       });
       await refetch();
-      console.log('Después de refetch, reservas:', reservas);
     } catch (err) {
       console.error('Error al procesar reserva:', err);
     }
   };
 
   const handleOpenModal = (reservaId: number | null, isRegister: boolean) => {
-    setSelectedReservaId(reservaId);
+    setSelectedReservaId(reservaId); // null es válido, undefined no debería llegar
     setIsModalOpen(true);
   };
 
@@ -107,17 +103,6 @@ export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
             columns={columns}
             data={reservas || []}
             searchableFields={searchableFields}
-            extraControls={
-              <div className="flex items-center gap-4">
-                <Button
-                  onPress={() => handleOpenModal(null, true)}
-                  color="primary"
-                  startContent={<FaPlus />}
-                >
-                  Registrar
-                </Button>
-              </div>
-            }
           />
 
           <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>

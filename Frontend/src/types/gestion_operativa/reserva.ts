@@ -1,5 +1,3 @@
-
-// src/types/gestion_operaciones/reserva.ts
 export interface Persona {
   id: number;
   first_name: string;

@@ -1,5 +1,3 @@
-
-// src/hook/usuarios/useUsuarios.ts
 import { useState, useEffect } from "react";
 import { Persona } from "../../types/usuarios/usuarios";
 import { useNavigate } from "react-router-dom";
@@ -36,22 +34,27 @@ export const useUsuarios = (apiUrl: string = "http://localhost:8000/api/personas
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
         if (response.status === 404) {
-          throw new Error(
-            "No se encontró la lista de usuarios. Verifica que la URL de la API sea correcta."
-          );
+          throw new Error("No se encontró la lista de usuarios. Verifica que la URL de la API sea correcta.");
         } else if (response.status === 403) {
           throw new Error("No tienes permisos para ver esta página. Debes ser administrador.");
         } else {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
+          throw new Error(`Error ${response.status}: ${errorText}`);
         }
       }
 
-      const data: Persona[] = await response.json();
-      setUsuarios(data);
+      const data = await response.json();
+      console.log("Datos de la API (usuarios):", data); // Depuración
+      const usuariosData = Array.isArray(data) ? data : (data.results || []); // Manejo de paginación
+      if (!Array.isArray(usuariosData)) {
+        throw new Error("La respuesta de la API no contiene un arreglo de usuarios.");
+      }
+      setUsuarios(usuariosData); // Mantiene los datos originales
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido al cargar los usuarios.");
+      console.error("Error fetching usuarios:", err);
     } finally {
       setIsLoading(false);
     }

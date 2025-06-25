@@ -1,5 +1,3 @@
-
-// src/components/gestion_operativa/ReservaForm.tsx
 import { Button, Input } from '@nextui-org/react';
 import { Select, SelectItem } from '@heroui/select';
 import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
@@ -40,13 +38,13 @@ export const ReservaForm = ({
         <Select
           label="Persona"
           selectedKeys={formData.persona ? [formData.persona.toString()] : []}
-          onChange={(e) => onChange('persona', parseInt(e.target.value))}
+          onChange={(e) => onChange('persona', parseInt(e.target.value) || undefined)}
           className="w-full"
           isRequired
           isLoading={personasLoading}
           isDisabled={personasLoading || (personas.length === 0 && !personasLoading)}
         >
-          {Array.isArray(personas) && personas.length > 0 ? (
+          {personas.length > 0 ? (
             personas.map((persona) => (
               <SelectItem key={persona.id.toString()} textValue={persona.first_name}>
                 {persona.first_name}
@@ -65,13 +63,13 @@ export const ReservaForm = ({
         <Select
           label="Producto"
           selectedKeys={formData.producto ? [formData.producto.toString()] : []}
-          onChange={(e) => onChange('producto', parseInt(e.target.value))}
+          onChange={(e) => onChange('producto', parseInt(e.target.value) || undefined)}
           className="w-full"
           isRequired
           isLoading={productosLoading}
           isDisabled={productosLoading || (productos.length === 0 && !productosLoading)}
         >
-          {Array.isArray(productos) && productos.length > 0 ? (
+          {productos.length > 0 ? (
             productos.map((producto) => (
               <SelectItem key={producto.id.toString()} textValue={producto.nombre}>
                 {producto.nombre}
@@ -88,10 +86,13 @@ export const ReservaForm = ({
       <Input
         label="Cantidad*"
         value={formData.cantidad?.toString() || ''}
-        onChange={(e) => onChange('cantidad', parseInt(e.target.value) || 1)}
+        onChange={(e) => onChange('cantidad', parseInt(e.target.value) || undefined)}
         isRequired
         type="number"
+        min={1}
         className="w-full"
+        isInvalid={formData.cantidad !== undefined && formData.cantidad < 1}
+        errorMessage={formData.cantidad !== undefined && formData.cantidad < 1 ? 'La cantidad debe ser mayor a 0' : ''}
       />
 
       <div className="flex justify-end pt-4">
@@ -99,7 +100,7 @@ export const ReservaForm = ({
           color="primary"
           onPress={onSubmit}
           isLoading={loading}
-          isDisabled={loading || !formData.persona || !formData.producto || !formData.cantidad}
+          isDisabled={loading || !formData.persona || !formData.producto || !formData.cantidad || formData.cantidad < 1}
           className="w-full md:w-auto"
         >
           {loading ? 'Registrando...' : 'Registrar Reserva'}
@@ -107,4 +108,4 @@ export const ReservaForm = ({
       </div>
     </div>
   );
-}
+};
