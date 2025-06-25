@@ -52,8 +52,24 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def marcar_como_pagada(self, request, pk=None):
-        """Marca una reserva como pagada y crea la transacción asociada"""
+        """Solo el líder de la unidad productiva puede marcar la reserva como pagada"""
         reserva = self.get_object()
+        user = request.user
+
+        # Validar que tenga rol y que sea "liderup"
+        if not hasattr(user, 'rol') or user.rol.nombre != 'liderup':
+            return Response(
+                {'error': 'Solo el líder de la unidad productiva puede marcar como pagada esta reserva.'},
+                status=status.HTTP_403_FORBIDDEN
+        )
+
+        #  Validar que pertenezca a la misma unidad productiva del producto
+        if not hasattr(user, 'unidadP') or user.unidadP != reserva.producto.unidadP:
+            return Response(
+                {'error': 'No puedes marcar como pagada una reserva de otra unidad productiva.'},
+                status=status.HTTP_403_FORBIDDEN
+        )
+
 
         if reserva.estado != 'pendiente':
             return Response({'error': 'Solo se pueden pagar reservas pendientes'}, status=status.HTTP_400_BAD_REQUEST)
