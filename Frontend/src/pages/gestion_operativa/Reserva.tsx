@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { useReserva } from '../../hook/gestion_operativa/useReserva';
-import { useRegistrarReserva } from '../../hook/gestion_operativa/useRegistrarReserva';
-import { useUsuarios } from '../../hook/usuarios/useUsuarios';
-import { useProductos } from '../../hook/inventario/useProductos';
-import { ReservaForm } from '../../components/gestion_operativa/ReservaForm';
-import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
+import { useEliminarReserva } from '../../hook/gestion_operativa/useEliminarReserva';
 import Tabla from '../../components/global/Tabla';
-import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
 
 const columns = [
   { uid: 'fecha_creacion', name: 'Fecha Creación' },
@@ -19,11 +14,11 @@ const columns = [
   {
     uid: 'acciones',
     name: 'Acciones',
-    render: (_data: any, row: any) => {
+    render: (_data: any, row: any, context: { eliminarReserva: (id: number) => Promise<void>; refetch: () => Promise<void> }) => {
       if (!row || typeof row.estado === 'undefined' || !row.id || typeof row.id !== 'number') return null;
-      return row.estado === 'pendiente' ? (
-        <Button color="danger" onPress={() => handleOpenModal(row.id, false)}>Cancelar</Button>
-      ) : null;
+      return (
+        <Button color="danger" onPress={() => handleDelete(row.id, context.eliminarReserva, context.refetch)}>Cancelar</Button>
+      );
     },
   },
 ];
@@ -31,54 +26,33 @@ const columns = [
 const searchableFields = ['persona_info.first_name', 'producto_info.nombre'];
 
 export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { reservas, loading: reservasLoading, error: reservasError, refetch } = useReserva();
-  const { registrarReserva, loading: registerLoading, error: registerError } = useRegistrarReserva();
-  // Proteger useUsuarios contra fallos
-  const usuariosData = useUsuarios();
-  const { usuarios, loading: personasLoading, error: personasError } = usuariosData || { usuarios: [], loading: false, error: null };
-  const { productos, loading: productosLoading, error: productosError } = useProductos();
-  const [selectedReservaId, setSelectedReservaId] = useState<number | null>(null);
-  const [formData, setFormData] = useState<ReservaCreateData>({
-    persona: 0, // Valor por defecto numérico
-    producto: 0,
-    cantidad: 0,
-  });
+  const { reservas, loading: reservasLoading, error: reservasError, refetch } = useReserva('http://localhost:8000/api/reservas/');
+  const { eliminarReserva, loading: deleteLoading, error: deleteError } = useEliminarReserva();
 
-  console.log('Reservas recibidas:', reservas);
+  // Logs minimizados
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Reservas cargadas: Conteo', reservas?.length || 0);
+    console.log('eliminarReserva en Reserva:', typeof eliminarReserva === 'function' ? 'función' : eliminarReserva);
+  }
 
-  const handleChange = (field: keyof ReservaCreateData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
+  const handleDelete = async (reservaId: number, eliminarReserva: (id: number) => Promise<void>, refetch: () => Promise<void>) => {
+    if (typeof eliminarReserva !== 'function') {
+      console.error('eliminarReserva no es una función en handleDelete:', eliminarReserva);
+      return;
+    }
     try {
-      if (!isModalOpen) return;
-      if (selectedReservaId === null && formData.persona !== 0 && formData.producto !== 0 && formData.cantidad !== 0) {
-        await registrarReserva({
-          persona: formData.persona,
-          producto: formData.producto,
-          cantidad: formData.cantidad,
-        });
-      } else if (selectedReservaId) {
-        // Lógica para cancelar reserva (ajustar según backend si aplica)
-      }
-      setIsModalOpen(false);
-      setFormData({
-        persona: 0,
-        producto: 0,
-        cantidad: 0,
-      });
+      console.log('Intentando eliminar reserva con ID:', reservaId);
+      await eliminarReserva(reservaId);
       await refetch();
+      console.log('Reserva eliminada y lista refetcheada');
     } catch (err) {
-      console.error('Error al procesar reserva:', err);
+      console.error('Error al eliminar reserva:', err);
     }
   };
 
-  const handleOpenModal = (reservaId: number | null, isRegister: boolean) => {
-    setSelectedReservaId(reservaId); // null es válido, undefined no debería llegar
-    setIsModalOpen(true);
-  };
+  if (!reservas && !reservasLoading && !reservasError) {
+    return <p className="text-red-500 text-center">Error: No se pudieron cargar las reservas.</p>;
+  }
 
   return (
     <div
@@ -93,36 +67,18 @@ export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
           </div>
 
           {reservasLoading && <p className="text-gray-500">Cargando reservas...</p>}
-          {reservasError && <p className="text-red-500 mb-4">{reservasError}</p>}
-          {personasError && <p className="text-red-500 mb-4">{personasError}</p>}
-          {productosError && <p className="text-red-500 mb-4">{productosError}</p>}
-          {reservas && reservas.length === 0 && !reservasLoading && !reservasError && (
+          {reservasError && <p className="text-red-500 mb-4">Error al cargar reservas: {reservasError}</p>}
+          {deleteError && <p className="text-red-500 mb-4">Error al eliminar reserva: {deleteError}</p>}
+          {reservas?.length === 0 && !reservasLoading && !reservasError && (
             <p className="text-gray-500 mb-4">No hay reservas para mostrar.</p>
           )}
           <Tabla
             columns={columns}
             data={reservas || []}
             searchableFields={searchableFields}
+            eliminarReserva={eliminarReserva}
+            refetch={refetch}
           />
-
-          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-            <ModalContent>
-              <ModalHeader>{selectedReservaId ? 'Cancelar Reserva' : 'Registrar Nueva Reserva'}</ModalHeader>
-              <ModalBody>
-                <ReservaForm
-                  formData={formData}
-                  personas={usuarios}
-                  productos={productos}
-                  onChange={handleChange}
-                  onSubmit={handleSubmit}
-                  loading={registerLoading}
-                  error={registerError || personasError || productosError}
-                  personasLoading={personasLoading}
-                  productosLoading={productosLoading}
-                />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
         </CardBody>
       </Card>
     </div>
