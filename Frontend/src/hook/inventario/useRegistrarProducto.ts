@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ProductoFormData } from '../../types/inventario/Producto';
 
@@ -17,18 +16,15 @@ export const useRegistrarProducto = () => {
       if (formData.categoria) form.append('categoria', formData.categoria);
       if (formData.unidadP) form.append('unidadP', formData.unidadP);
       form.append('estado', formData.estado);
-      form.append('tipo_gestion', formData.tipo_gestion);
+      form.append('stock', formData.stock.toString()); // Enviar stock explícitamente
       form.append('reservas', formData.reservas.toString());
-      if (formData.hora_limite_reserva)
-        form.append('hora_limite_reserva', formData.hora_limite_reserva);
-      if (formData.stock_actual != null)
+      if (formData.hora_limite_reserva) form.append('hora_limite_reserva', formData.hora_limite_reserva);
+      if (formData.stock && formData.stock_actual != null) // Solo enviar si stock es true
         form.append('stock_actual', formData.stock_actual.toString());
-      if (formData.capacidad_diaria != null)
-        form.append('capacidad_diaria', formData.capacidad_diaria.toString());
+      if (formData.max_reservas) form.append('max_reservas', formData.max_reservas.toString());
       form.append('precio_compra', formData.precio_compra);
       form.append('tiene_descuento', formData.tiene_descuento.toString());
-      if (formData.porcentaje_descuento)
-        form.append('porcentaje_descuento', formData.porcentaje_descuento);
+      if (formData.porcentaje_descuento) form.append('porcentaje_descuento', formData.porcentaje_descuento);
       if (formData.imagen) form.append('imagen', formData.imagen);
       form.append('unidad_medida_base', formData.unidad_medida_base);
 
@@ -41,7 +37,7 @@ export const useRegistrarProducto = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || 'Error al registrar producto');
       }
 

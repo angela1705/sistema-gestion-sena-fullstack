@@ -1,16 +1,15 @@
-
-// src/types/gestion_operaciones/reserva.ts
+// types/gestion_operativa/reserva.ts
 export interface Persona {
   id: number;
   first_name: string;
-  numFicha?: string; // Opcional según tu modelo
+  numFicha?: string; // Opcional según el modelo
 }
 
 export interface Producto {
   id: number;
   nombre: string;
   activo: boolean;
-  unidadP?: number; // Relación con UnidadProductiva si aplica
+  unidadP?: number; // Relación con UnidadProductiva
 }
 
 export interface Transaccion {
@@ -23,13 +22,14 @@ export interface Reserva {
   persona_info: Persona;
   producto: number;
   producto_info: Producto;
-  precio_unitario: number;
+  precio_unitario: string; // Decimal como string desde la API
   cantidad: number;
-  total: number;
+  total: string; // Decimal como string desde la API
   fecha_creacion: string;
   fecha_actualizacion: string;
-  estado: string;
+  estado: 'pendiente' | 'pagada' | 'cancelada' | 'entregada';
   estado_display: string;
+  transaccion: number | null;
   transaccion_info: Transaccion | null;
 }
 
@@ -37,5 +37,5 @@ export interface ReservaCreateData {
   persona?: number;
   producto: number;
   cantidad: number;
-  estado?: string; // Read-only en serializer, pero lo incluimos por seguridad
+  estado?: 'pendiente'; // Solo pendiente al crear
 }

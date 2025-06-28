@@ -1,24 +1,24 @@
-
-// src/hook/gestion_operativa/useRegistrarReserva.ts
+// hook/gestion_operativa/useRegistrarReserva.ts
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Reserva, ReservaCreateData } from '../../types/gestion_operativa/reserva';
+import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
 
-export const useRegistrarReserva = () => {
-  const [loading, setLoading] = useState(false);
+interface UseRegistrarReservaResponse {
+  registrarReserva: (data: ReservaCreateData) => Promise<void>;
+  loading: boolean;
+  error: string | null;
+}
+
+export const useRegistrarReserva = (): UseRegistrarReservaResponse => {
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const registrarReserva = async (data: ReservaCreateData) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      setError('No estás autenticado.');
-      return null;
-    }
-
     setLoading(true);
+    setError(null);
     try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No estás autenticado.');
+
       const response = await fetch('http://localhost:8000/api/reservas/', {
         method: 'POST',
         headers: {
@@ -28,16 +28,10 @@ export const useRegistrarReserva = () => {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
-      }
-
-      const newReserva = await response.json();
-      return newReserva as Reserva;
+      if (!response.ok) throw new Error('Error al registrar la reserva');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido.');
-      return null;
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      console.error('Error al registrar reserva:', err);
     } finally {
       setLoading(false);
     }

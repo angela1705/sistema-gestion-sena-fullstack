@@ -17,7 +17,7 @@ const Topbar: React.FC = () => {
   }
 
   return (
-    <header className="w-full h-16 bg-gray-800 text-white shadow-md fixed top-0 left-0 z-50 flex items-center px-4">
+    <header className="w-full h-16 bg-gray-700 text-white shadow-md fixed top-0 left-0 z-50 flex items-center px-4">
       <div className="flex-1 flex justify-between items-center">
         <span></span>
         <div
@@ -34,7 +34,7 @@ const Topbar: React.FC = () => {
           )}
           <div className="w-px h-6 bg-gray-600 mx-1" />
           <button
-            className="p-2 rounded-full hover:bg-gray-700 transition-all"
+            className="p-2 rounded-full hover:bg-gray-600 transition-all"
             title="Perfil"
           >
             <User size={24} />

@@ -1,4 +1,3 @@
-
 import { Button, Input, Switch } from '@nextui-org/react';
 import { Select, SelectItem } from '@heroui/select';
 import { ProductoFormData } from '../../types/inventario/Producto';
@@ -17,11 +16,6 @@ interface ProductoFormProps {
 const estadoOptions = [
   { value: 'disponible', label: 'Disponible' },
   { value: 'no_disponible', label: 'No disponible' },
-];
-
-const tipoGestionOptions = [
-  { value: 'stock', label: 'Gestión por stock' },
-  { value: 'produccion', label: 'Producción diaria (almuerzos)' },
 ];
 
 const unidadMedidaOptions = [
@@ -140,42 +134,15 @@ export const RegistrarProductoForm = ({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Tipo de Gestión*</label>
-          <Select
-            label="Tipo de Gestión"
-            selectedKeys={formData.tipo_gestion ? [formData.tipo_gestion] : []}
-            onChange={(e) => onChange('tipo_gestion', e.target.value)}
-            className="w-full"
-            isRequired
-          >
-            {tipoGestionOptions.map((option) => (
-              <SelectItem key={option.value} textValue={option.label}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </Select>
-        </div>
-
         <Switch
-          isSelected={formData.reservas}
-          onValueChange={(value) => onChange('reservas', value)}
+          isSelected={formData.stock}
+          onValueChange={(value) => onChange('stock', value)}
           className="w-full"
         >
-          Permitir reservas
+          Gestiona Stock
         </Switch>
 
-        {formData.reservas && (
-          <Input
-            label="Hora Límite Reserva"
-            type="time"
-            value={formData.hora_limite_reserva || ''}
-            onChange={(e) => onChange('hora_limite_reserva', e.target.value)}
-            className="w-full"
-          />
-        )}
-
-        {formData.tipo_gestion === 'stock' && (
+        {formData.stock && (
           <Input
             label="Stock Actual*"
             type="number"
@@ -187,16 +154,33 @@ export const RegistrarProductoForm = ({
           />
         )}
 
-        {formData.tipo_gestion === 'produccion' && (
-          <Input
-            label="Capacidad Diaria*"
-            type="number"
-            value={formData.capacidad_diaria?.toString() || ''}
-            onChange={(e) => onChange('capacidad_diaria', parseInt(e.target.value))}
-            isRequired
-            className="w-full"
-            min="0"
-          />
+        <Switch
+          isSelected={formData.reservas}
+          onValueChange={(value) => onChange('reservas', value)}
+          className="w-full"
+        >
+          Permitir reservas
+        </Switch>
+
+        {formData.reservas && (
+          <>
+            <Input
+              label="Hora Límite Reserva"
+              type="time"
+              value={formData.hora_limite_reserva || ''}
+              onChange={(e) => onChange('hora_limite_reserva', e.target.value)}
+              className="w-full"
+            />
+            <Input
+              label="Máximo Reservas*"
+              type="number"
+              value={formData.max_reservas?.toString() || ''}
+              onChange={(e) => onChange('max_reservas', parseInt(e.target.value))}
+              isRequired
+              className="w-full"
+              min="1"
+            />
+          </>
         )}
 
         <Input
@@ -209,6 +193,14 @@ export const RegistrarProductoForm = ({
           step="0.01"
           min="0.01"
         />
+
+        <Switch
+          isSelected={formData.tiene_descuento}
+          onValueChange={(value) => onChange('tiene_descuento', value)}
+          className="w-full"
+        >
+          Aplicar descuento
+        </Switch>
 
         {formData.tiene_descuento && (
           <Input
@@ -223,14 +215,6 @@ export const RegistrarProductoForm = ({
             step="0.01"
           />
         )}
-
-        <Switch
-          isSelected={formData.tiene_descuento}
-          onValueChange={(value) => onChange('tiene_descuento', value)}
-          className="w-full"
-        >
-          Aplicar descuento
-        </Switch>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">Unidad de Medida*</label>
@@ -267,10 +251,9 @@ export const RegistrarProductoForm = ({
               !formData.categoria ||
               !formData.unidadP ||
               !formData.estado ||
-              !formData.tipo_gestion ||
               !formData.precio_compra ||
-              (formData.tipo_gestion === 'stock' && formData.stock_actual == null) ||
-              (formData.tipo_gestion === 'produccion' && formData.capacidad_diaria == null) ||
+              (formData.stock && formData.stock_actual == null) || // Validar stock_actual si stock es true
+              (formData.reservas && (!formData.hora_limite_reserva || formData.max_reservas == null)) || // Validar reservas
               (formData.tiene_descuento && !formData.porcentaje_descuento)
             }
             className="w-full md:w-auto"

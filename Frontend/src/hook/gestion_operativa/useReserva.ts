@@ -1,18 +1,32 @@
-
-// src/hook/gestion_operativa/useReserva.ts
+// hook/gestion_operativa/useReserva.ts
 import { useState, useEffect } from 'react';
 import { Reserva } from '../../types/gestion_operativa/reserva';
 
-export const useReserva = () => {
+interface UseReservaResponse {
+  reservas: Reserva[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+}
+
+export const useReserva = (apiUrl: string = 'http://localhost:8000/api/reservas/'): UseReservaResponse => {
   const [reservas, setReservas] = useState<Reserva[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchReservas = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No estás autenticado. Por favor, inicia sesión.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/reservas/', {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
@@ -23,10 +37,12 @@ export const useReserva = () => {
       }
 
       const data = await response.json();
-      const reservasData = Array.isArray(data) ? data : data.results || [];
+      console.log('Datos de la API (reservas) - Conteo:', data.length); // Solo conteo para depuración
+      const reservasData = Array.isArray(data) ? data : (data.results || []);
       setReservas(reservasData);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setError(err instanceof Error ? err.message : 'Error desconocido al cargar las reservas.');
       console.error('Error fetching reservas:', err);
     } finally {
       setLoading(false);
@@ -35,9 +51,14 @@ export const useReserva = () => {
 
   useEffect(() => {
     fetchReservas();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiUrl]); // Solo se ejecuta al montar o cambiar apiUrl
 
-  const refetch = () => fetchReservas();
+  const refetch = () => {
+    setLoading(true);
+    setError(null);
+    fetchReservas();
+  };
 
   return { reservas, loading, error, refetch };
 };

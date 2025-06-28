@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { FaPlus } from 'react-icons/fa';
@@ -23,10 +22,10 @@ const columns = [
     render: (data: any) => data?.nombre || 'Sin unidad',
   },
   { uid: 'estado_display', name: 'Estado' },
-  { uid: 'tipo_gestion_display', name: 'Tipo Gestión' },
+  { uid: 'stock', name: 'Gestiona Stock', render: (data: any) => data ? 'Sí' : 'No' },
   { uid: 'precio_final', name: 'Precio Final' },
   { uid: 'stock_actual', name: 'Stock Actual', render: (data: any) => data ?? '-' },
-  { uid: 'capacidad_diaria', name: 'Capacidad Diaria', render: (data: any) => data ?? '-' },
+  { uid: 'max_reservas', name: 'Máx. Reservas', render: (data: any) => data ?? '-' },
 ];
 
 const searchableFields = ['nombre', 'categoria_info.nombre', 'unidadP_info.nombre'];
@@ -46,11 +45,11 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
     categoria: '',
     unidadP: '',
     estado: 'disponible',
-    tipo_gestion: 'stock',
+    stock: true, // Valor por defecto alineado con el modelo
     reservas: true,
     hora_limite_reserva: '',
     stock_actual: undefined,
-    capacidad_diaria: undefined,
+    max_reservas: undefined,
     precio_compra: '',
     tiene_descuento: false,
     porcentaje_descuento: '',
@@ -72,20 +71,21 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
         categoria: '',
         unidadP: '',
         estado: 'disponible',
-        tipo_gestion: 'stock',
+        stock: true,
         reservas: true,
         hora_limite_reserva: '',
         stock_actual: undefined,
-        capacidad_diaria: undefined,
+        max_reservas: undefined,
         precio_compra: '',
         tiene_descuento: false,
         porcentaje_descuento: '',
         imagen: null,
         unidad_medida_base: 'unidad',
       });
-      await refetch(); // Asegura que refetch espere a completarse
+      await refetch();
     } catch (err) {
-      console.error('Error al registrar producto:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error del servidor: respuesta no válida';
+      console.error('Error al registrar producto:', errorMessage);
     }
   };
 
@@ -137,7 +137,7 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
                   onChange={handleChange}
                   onSubmit={handleSubmit}
                   loading={registerLoading}
-                  error={registerError || optionsError}
+                  error={registerError || optionsError || productosError}
                   optionsLoading={optionsLoading}
                 />
               </ModalBody>

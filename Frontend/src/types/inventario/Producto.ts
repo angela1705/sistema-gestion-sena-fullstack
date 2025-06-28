@@ -1,4 +1,3 @@
-
 export interface Producto {
   id: number;
   nombre: string;
@@ -7,12 +6,11 @@ export interface Producto {
   unidadP_info?: { id: number; nombre: string };
   estado: string;
   estado_display: string;
-  tipo_gestion: string;
-  tipo_gestion_display: string;
+  stock: boolean;
   reservas: boolean;
   hora_limite_reserva?: string;
   stock_actual?: number;
-  capacidad_diaria?: number;
+  max_reservas?: number;
   precio_compra: number;
   tiene_descuento: boolean;
   porcentaje_descuento?: number;
@@ -29,11 +27,11 @@ export interface ProductoFormData {
   categoria: string;
   unidadP: string;
   estado: string;
-  tipo_gestion: string;
+  stock: boolean;
   reservas: boolean;
   hora_limite_reserva?: string;
   stock_actual?: number;
-  capacidad_diaria?: number;
+  max_reservas?: number;
   precio_compra: string;
   tiene_descuento: boolean;
   porcentaje_descuento?: string;
