@@ -6,7 +6,8 @@ class Rol(models.Model):
         ('pasante', 'Pasante'),
         ('liderup', 'Lider de unidad productiva'),
         ('vocera', 'Vocera'),
-        ('administrador', 'Administrador')
+        ('administrador', 'Administrador'),
+        ('cajero', 'Cajero'),
     ]   
     
     nombre = models.CharField(max_length=20, choices=OPCIONES_ROL, unique=True)
