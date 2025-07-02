@@ -13,6 +13,8 @@ class UnidadProductiva(models.Model):
         ('ambiental', 'Ambiental'),
         ('empresaserviciopublicos', 'Servicios Publicos'),
         ('moda', 'Moda'),
+        ('tiendaY', 'Tienda Yamboro'),
+
     ]
     
     ESTADOS_UNIDAD = [  

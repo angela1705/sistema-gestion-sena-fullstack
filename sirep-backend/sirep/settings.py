@@ -54,7 +54,9 @@ INSTALLED_APPS = [
     'apps.usuarios.cargo',
     'apps.usuarios.persona',
     'apps.usuarios.rol',
+    'channels',
 ]
+#ASGI_APPLICATION = 'sirep.asgi.application'
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
