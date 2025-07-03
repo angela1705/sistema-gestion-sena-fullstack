@@ -2,7 +2,7 @@
 // src/components/gestion_operativa/caja_diaria/CajaDiariaForm.tsx
 import { Button, Input } from '@nextui-org/react';
 import { Select, SelectItem } from '@heroui/select';
-import { CajaDiariaFormData, CajaDiariaCierreData } from '../../types/gestion_operativa/caja_diaria';
+import { CajaDiariaFormData} from '../../types/gestion_operativa/caja_diaria';
 
 interface CajaDiariaFormProps {
   formData: CajaDiariaFormData;

@@ -12,11 +12,12 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
+import { SedeOption, EncargadoOption } from "../../types/entidades/Options";
 
 interface Column {
   uid: string;
   name: string;
-  render?: (data: any, row: any, senaEmpresas: any[]) => React.ReactNode;
+  render?: (data: any, row: any, options: SedeOption[] | EncargadoOption[]) => React.ReactNode;
 }
 
 interface TablaProps {
@@ -24,7 +25,7 @@ interface TablaProps {
   data: any[] | { count: number; next: string | null; previous: string | null; results: any[] } | undefined;
   searchableFields?: string[];
   extraControls?: React.ReactNode;
-  senaEmpresas?: any[];
+  senaEmpresas?: SedeOption[] | EncargadoOption[]; // Cambiado de intersección (&) a unión (|)
   onRowsPerPageChange?: (value: number) => void;
 }
 
@@ -40,7 +41,7 @@ const Tabla: React.FC<TablaProps> = ({
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Normalizar data para que siempre sea un array
+  // Normalizar datos para que siempre sea un array
   const normalizedData = Array.isArray(data) ? data : data?.results || [];
   console.log("Tabla Props - Data:", data, "Normalized Data:", normalizedData, "SenaEmpresas:", senaEmpresas);
 

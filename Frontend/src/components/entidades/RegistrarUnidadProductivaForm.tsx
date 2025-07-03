@@ -1,12 +1,14 @@
-
-import { Button, Input } from '@nextui-org/react';
-import { Select, SelectItem } from '@heroui/select';
-import { UnidadProductivaFormData } from '../../types/entidades/UnidadProductiva';
+// src/components/entidades/RegistrarUnidadProductivaForm.tsx
+import { Button, Input } from "@nextui-org/react";
+import { Select, SelectItem } from "@heroui/select";
+import { UnidadProductivaFormData } from "../../types/entidades/UnidadProductiva";
+import { SedeOption, EncargadoOption } from "../../types/entidades/Options";
 
 interface UnidadProductivaFormProps {
   formData: UnidadProductivaFormData;
-  sedes: { id: number; nombre_display: string }[];
-  encargados: { id: number; nombre_completo: string }[];
+  sedes: SedeOption[];
+  encargados: EncargadoOption[];
+  tipos: { value: string; label: string }[];
   onChange: (field: keyof UnidadProductivaFormData, value: string) => void;
   onSubmit: () => void;
   loading: boolean;
@@ -18,18 +20,13 @@ export const RegistrarUnidadProductivaForm = ({
   formData,
   sedes = [],
   encargados = [],
+  tipos = [],
   onChange,
   onSubmit,
   loading,
   error,
   optionsLoading,
 }: UnidadProductivaFormProps) => {
-  const tipoOptions = [
-    { value: 'agricola', label: 'Agrícola' },
-    { value: 'pecuaria', label: 'Pecuaria' },
-    { value: 'industrial', label: 'Industrial' },
-  ];
-
   return (
     <div className="space-y-4">
       {error && (
@@ -41,12 +38,12 @@ export const RegistrarUnidadProductivaForm = ({
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Seleccione el tipo*</label>
         <div className="flex gap-2">
-          {tipoOptions.map((option) => (
+          {tipos.map((option) => (
             <Button
               key={option.value}
-              variant={formData.tipo === option.value ? 'solid' : 'bordered'}
+              variant={formData.tipo === option.value ? "solid" : "bordered"}
               color="primary"
-              onPress={() => onChange('tipo', option.value)}
+              onPress={() => onChange("tipo", option.value)}
               className="flex-1"
             >
               {option.label}
@@ -58,7 +55,7 @@ export const RegistrarUnidadProductivaForm = ({
       <Input
         label="Nombre*"
         value={formData.nombre}
-        onChange={(e) => onChange('nombre', e.target.value)}
+        onChange={(e) => onChange("nombre", e.target.value)}
         isRequired
         className="w-full"
       />
@@ -68,7 +65,7 @@ export const RegistrarUnidadProductivaForm = ({
         <Select
           label="Sede"
           selectedKeys={formData.sede ? [formData.sede] : []}
-          onChange={(e) => onChange('sede', e.target.value)}
+          onChange={(e) => onChange("sede", e.target.value)}
           className="w-full"
           isRequired
           isLoading={optionsLoading}
@@ -93,7 +90,7 @@ export const RegistrarUnidadProductivaForm = ({
         <Select
           label="Encargado"
           selectedKeys={formData.encargado ? [formData.encargado] : []}
-          onChange={(e) => onChange('encargado', e.target.value)}
+          onChange={(e) => onChange("encargado", e.target.value)}
           className="w-full"
           isRequired
           isLoading={optionsLoading}
@@ -127,7 +124,7 @@ export const RegistrarUnidadProductivaForm = ({
           }
           className="w-full md:w-auto"
         >
-          {loading ? 'Guardando...' : 'Guardar Unidad'}
+          {loading ? "Guardando..." : "Guardar Unidad"}
         </Button>
       </div>
     </div>

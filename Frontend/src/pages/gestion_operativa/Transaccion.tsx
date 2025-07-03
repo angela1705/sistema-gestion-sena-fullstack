@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Button, Card, CardBody } from '@nextui-org/react';
+import { useState, useEffect } from 'react';
+import { Button, Card, CardBody } from '@heroui/react';
 import { FaPlus } from 'react-icons/fa';
 import { useTransaccion } from '../../hook/gestion_operativa/useTransaccion';
 import { useRegistrarTransaccion } from '../../hook/gestion_operativa/useRegistrarTransaccion';
 import { useUsuarios } from '../../hook/usuarios/useUsuarios';
 import { useProductos } from '../../hook/inventario/useProductos';
-import { TransaccionForm } from '../../components/gestion_operativa/TransaccionForm';
 import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
 import Tabla from '../../components/global/Tabla';
-import { TransaccionCreateData } from '../../types/gestion_operativa/transaccion';
+import { TransaccionCreateData, TipoTransaccion } from '../../types/gestion_operativa/transaccion';
+import TransaccionForm from '../../components/gestion_operativa/TransaccionForm';
 
 const columns = [
   { uid: 'fecha', name: 'Fecha' },
@@ -37,47 +37,61 @@ export default function Transaccion({ isNavbarOpen }: { isNavbarOpen: boolean })
   const { usuarios, loading: usuariosLoading, error: usuariosError } = useUsuarios();
   const { productos, loading: productosLoading, error: productosError } = useProductos();
   const [selectedTransaccionId, setSelectedTransaccionId] = useState<number | null>(null);
-  const [formData, setFormData] = useState<TransaccionCreateData>({
-    tipo: '',
-    cantidad: undefined,
-    usuario: undefined,
-    producto: undefined,
-  });
+  const [items, setItems] = useState<{ producto: number; cantidad: number; monto_venta?: number }[]>([{ producto: 0, cantidad: 0, monto_venta: 0 }]);
+  const [usuarioId, setUsuarioId] = useState<number | undefined>(undefined);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  console.log('Transacciones:', transacciones);
-  console.log('Error de transacciones:', transaccionesError);
+  console.log('Transacciones recibidas:', transacciones);
   console.log('Usuarios:', usuarios);
   console.log('Productos:', productos);
+  console.log('Items a registrar:', items);
 
-  const handleChange = (field: keyof TransaccionCreateData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleUsuarioChange = (value: number) => {
+    setUsuarioId(value);
+  };
+
+  const handleItemChange = (index: number, field: 'producto' | 'cantidad' | 'monto_venta', value: number) => {
+    const newItems = [...items];
+    newItems[index][field] = value;
+    setItems(newItems);
+  };
+
+  const addItem = () => {
+    setItems([...items, { producto: 0, cantidad: 0, monto_venta: 0 }]);
   };
 
   const handleSubmit = async () => {
     try {
-      if (!isModalOpen) return;
-      if (selectedTransaccionId === null && formData.tipo && formData.cantidad !== undefined && formData.usuario !== undefined && formData.producto !== undefined) {
-        const newTransaccion = await registrarTransaccion({
-          tipo: formData.tipo,
-          cantidad: formData.cantidad,
-          usuario: formData.usuario,
-          producto: formData.producto,
-        });
-        if (newTransaccion) {
-          refetch(); // Refrescamos la lista
-        }
-      } else if (selectedTransaccionId) {
-        // Lógica para cancelar transacción
+      if (!isModalOpen || !usuarioId) {
+        setErrorMessage('Debes seleccionar un usuario.');
+        return;
       }
-      setIsModalOpen(false);
-      setFormData({
-        tipo: '',
-        cantidad: undefined,
-        usuario: undefined,
-        producto: undefined,
-      });
+      if (items.some(item => !item.producto || !item.cantidad || !item.monto_venta)) {
+        setErrorMessage('Todos los productos deben tener cantidad y monto de venta.');
+        return;
+      }
+      setErrorMessage(null);
+      const promises = items.map(item =>
+        registrarTransaccion({
+          tipo: TipoTransaccion.VENTA,
+          producto: item.producto,
+          cantidad: item.cantidad,
+          usuario: userId,
+          monto_venta: item.monto_venta || 0,
+        })
+      );
+      const results = await Promise.all(promises);
+      if (results.every(r => r !== null)) {
+        refetch();
+        setIsModalOpen(false);
+        setItems([{ producto: 0, cantidad: 0, monto_venta: 0 }]);
+        setUsuarioId(undefined);
+      } else {
+        setErrorMessage('Error al registrar una o más transacciones.');
+      }
     } catch (err) {
-      console.error('Error al procesar transacción:', err);
+      setErrorMessage('Error en la solicitud. Verifica los datos.');
+      console.error('Error al procesar transacciones:', err);
     }
   };
 
@@ -103,7 +117,7 @@ export default function Transaccion({ isNavbarOpen }: { isNavbarOpen: boolean })
           {usuariosError && <p className="text-red-500 mb-4">{usuariosError}</p>}
           {productosError && <p className="text-red-500 mb-4">{productosError}</p>}
           {transacciones && transacciones.length === 0 && !transaccionesLoading && !transaccionesError && (
-            <p className="text-gray-500 mb-4">No hay transacciones para mostrar o hubo un error al cargarlas.</p>
+            <p className="text-gray-500 mb-4">No hay transacciones para mostrar.</p>
           )}
           <Tabla
             columns={columns}
@@ -116,7 +130,7 @@ export default function Transaccion({ isNavbarOpen }: { isNavbarOpen: boolean })
                   color="primary"
                   startContent={<FaPlus />}
                 >
-                  Registrar
+                  Registrar Venta
                 </Button>
               </div>
             }
@@ -124,16 +138,19 @@ export default function Transaccion({ isNavbarOpen }: { isNavbarOpen: boolean })
 
           <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} className="flex items-center justify-center">
             <ModalContent>
-              <ModalHeader>Registrar Nueva Transacción</ModalHeader>
+              <ModalHeader>Registrar Venta</ModalHeader>
               <ModalBody>
                 <TransaccionForm
-                  formData={formData}
+                  items={items}
+                  usuarioId={usuarioId}
                   usuarios={usuarios}
                   productos={productos}
-                  onChange={handleChange}
+                  onItemChange={handleItemChange}
+                  onUsuarioChange={handleUsuarioChange}
+                  onAddItem={addItem}
                   onSubmit={handleSubmit}
                   loading={registerLoading}
-                  error={registerError || transaccionesError || usuariosError || productosError}
+                  error={errorMessage || registerError}
                   usuariosLoading={usuariosLoading}
                   productosLoading={productosLoading}
                 />

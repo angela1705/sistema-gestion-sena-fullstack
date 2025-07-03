@@ -1,4 +1,4 @@
-
+// src/pages/Precios.tsx
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { FaPlus } from 'react-icons/fa';
@@ -105,6 +105,7 @@ export default function Precios({ isNavbarOpen }: { isNavbarOpen: boolean }) {
                   onSubmit={handleSubmit}
                   loading={registerLoading}
                   error={registerError}
+                  optionsLoading={optionsLoading} // Añadir la prop faltante
                 />
               </ModalBody>
             </ModalContent>

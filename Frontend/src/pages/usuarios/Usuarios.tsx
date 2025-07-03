@@ -25,7 +25,7 @@ const columns = [
 const searchableFields = ["first_name", "last_name", "identificacion"];
 
 const Usuarios: React.FC<UsuariosProps> = ({ isNavbarOpen }) => {
-  const { usuarios, isLoading, error, retry } = useUsuarios("http://localhost:8000/api/personas/");
+  const { usuarios, error } = useUsuarios(); // Eliminado el argumento
   const navigate = useNavigate();
 
   useEffect(() => {

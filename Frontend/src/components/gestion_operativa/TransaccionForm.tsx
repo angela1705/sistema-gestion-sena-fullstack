@@ -1,80 +1,59 @@
-import { Button, Input } from '@nextui-org/react';
-import { Select, SelectItem } from '@heroui/select';
-import { TransaccionCreateData } from '../../types/gestion_operativa/transaccion';
-import { useProductos } from '../../hook/inventario/useProductos';
+import React from 'react';
+import { Button, Input, Select, SelectItem } from '@heroui/react';
+import { FaPlus } from 'react-icons/fa';
 
 interface TransaccionFormProps {
-  formData: TransaccionCreateData;
+  items: { producto: number; cantidad: number; monto_venta?: number }[];
+  usuarioId: number | undefined;
   usuarios: { id: number; first_name: string }[];
-  productos: { id: number; nombre: string }[]; // Aseguramos que productos sea obligatorio
-  onChange: (field: keyof TransaccionCreateData, value: any) => void;
+  productos: { id: number; nombre: string }[];
+  onItemChange: (index: number, field: 'producto' | 'cantidad' | 'monto_venta', value: number) => void;
+  onUsuarioChange: (value: number) => void;
+  onAddItem: () => void;
   onSubmit: () => void;
   loading: boolean;
   error: string | null;
-  usuariosLoading?: boolean;
-  productosLoading?: boolean;
+  usuariosLoading: boolean;
+  productosLoading: boolean;
 }
 
-export const TransaccionForm = ({
-  formData,
-  usuarios = [],
-  productos = [], // Valor por defecto para evitar errores
-  onChange,
+const TransaccionForm: React.FC<TransaccionFormProps> = ({
+  items,
+  usuarioId,
+  usuarios,
+  productos,
+  onItemChange,
+  onUsuarioChange,
+  onAddItem,
   onSubmit,
   loading,
   error,
-  usuariosLoading = false,
-  productosLoading = false,
-}: TransaccionFormProps) => {
-  console.log('Usuarios en formulario:', usuarios); // Depuración
-  console.log('Productos en formulario:', productos); // Depuración
+  usuariosLoading,
+  productosLoading,
+}) => {
+  const filteredUsuarios = usuarios.filter(u =>
+    u.id.toString().includes('') || u.first_name.toLowerCase().includes(''.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="text-red-500 p-2 rounded bg-red-50 mb-4">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Tipo de Transacción*</label>
-        <Select
-          label="Tipo de Transacción"
-          selectedKeys={formData.tipo ? [formData.tipo] : []}
-          onChange={(e) => onChange('tipo', e.target.value)}
-          className="w-full"
-          isRequired
-        >
-          <SelectItem key="venta" textValue="Venta">Venta</SelectItem>
-          <SelectItem key="compra" textValue="Compra">Compra</SelectItem>
-        </Select>
-      </div>
-
-      <Input
-        label="Cantidad*"
-        value={formData.cantidad?.toString() || ''}
-        onChange={(e) => onChange('cantidad', parseInt(e.target.value) || 1)}
-        isRequired
-        type="number"
-        className="w-full"
-      />
-
+      {error && <div className="text-red-500 p-2 rounded bg-red-50 mb-4">{error}</div>}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Usuario*</label>
         <Select
-          label="Usuario"
-          selectedKeys={formData.usuario ? [formData.usuario.toString()] : []}
-          onChange={(e) => onChange('usuario', parseInt(e.target.value))}
+          label="Escribe para buscar usuario"
+          selectedKeys={usuarioId ? [usuarioId.toString()] : []}
+          onChange={(e) => onUsuarioChange(parseInt(e.target.value) || 0)}
           className="w-full"
           isRequired
           isLoading={usuariosLoading}
           isDisabled={usuariosLoading || (usuarios.length === 0 && !usuariosLoading)}
+          placeholder="Escribe ID o nombre..."
         >
-          {Array.isArray(usuarios) && usuarios.length > 0 ? (
-            usuarios.map((usuario) => (
-              <SelectItem key={usuario.id.toString()} textValue={usuario.first_name}>
-                {usuario.first_name}
+          {filteredUsuarios.length > 0 ? (
+            filteredUsuarios.map((usuario) => (
+              <SelectItem key={usuario.id.toString()} textValue={`${usuario.id} - ${usuario.first_name}`}>
+                {`${usuario.id} - ${usuario.first_name}`}
               </SelectItem>
             ))
           ) : (
@@ -84,43 +63,74 @@ export const TransaccionForm = ({
           )}
         </Select>
       </div>
-
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Producto*</label>
-        <Select
-          label="Producto"
-          selectedKeys={formData.producto ? [formData.producto.toString()] : []}
-          onChange={(e) => onChange('producto', parseInt(e.target.value))}
-          className="w-full"
-          isRequired
-          isLoading={productosLoading}
-          isDisabled={productosLoading || (productos.length === 0 && !productosLoading)}
-        >
-          {Array.isArray(productos) && productos.length > 0 ? (
-            productos.map((producto) => (
-              <SelectItem key={producto.id.toString()} textValue={producto.nombre}>
-                {producto.nombre}
-              </SelectItem>
-            ))
-          ) : (
-            <SelectItem key="no-productos" textValue="No hay productos disponibles" isDisabled>
-              No hay productos disponibles
-            </SelectItem>
-          )}
-        </Select>
-      </div>
-
-      <div className="flex justify-end pt-4">
-        <Button
-          color="primary"
-          onPress={onSubmit}
-          isLoading={loading}
-          isDisabled={loading || !formData.tipo || !formData.cantidad || !formData.usuario || !formData.producto}
-          className="w-full md:w-auto"
-        >
-          {loading ? 'Registrando...' : 'Guardar Transacción'}
-        </Button>
-      </div>
+      {items.map((item, index) => (
+        <div key={index} className="flex items-center gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium">Producto {index + 1}*</label>
+            <Select
+              label="Producto"
+              selectedKeys={item.producto ? [item.producto.toString()] : []}
+              onChange={(e) => onItemChange(index, 'producto', parseInt(e.target.value) || 0)}
+              className="w-full"
+              isRequired
+              isLoading={productosLoading}
+              isDisabled={productosLoading || (productos.length === 0 && !productosLoading)}
+            >
+              {productos.length > 0 ? (
+                productos.map((producto) => (
+                  <SelectItem key={producto.id.toString()} textValue={producto.nombre}>
+                    {producto.nombre}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem key="no-productos" textValue="No hay productos disponibles" isDisabled>
+                  No hay productos disponibles
+                </SelectItem>
+              )}
+            </Select>
+          </div>
+          <div className="w-1/4">
+            <label className="text-sm font-medium">Cantidad*</label>
+            <Input
+              value={item.cantidad?.toString() || ''}
+              onChange={(e) => onItemChange(index, 'cantidad', parseInt(e.target.value) || 1)}
+              isRequired
+              type="number"
+              className="w-full"
+            />
+          </div>
+          <div className="w-1/4">
+            <label className="text-sm font-medium">Monto Venta*</label>
+            <Input
+              value={item.monto_venta?.toString() || ''}
+              onChange={(e) => onItemChange(index, 'monto_venta', parseFloat(e.target.value) || 0)}
+              isRequired
+              type="number"
+              step="0.01"
+              className="w-full"
+            />
+          </div>
+        </div>
+      ))}
+      <Button
+        color="primary"
+        onPress={onAddItem}
+        startContent={<FaPlus />}
+        className="w-full mt-2"
+      >
+        Agregar otro producto
+      </Button>
+      <Button
+        color="primary"
+        onPress={onSubmit}
+        isLoading={loading}
+        isDisabled={loading || !usuarioId || items.some(i => !i.producto || !i.cantidad || !i.monto_venta)}
+        className="w-full mt-4"
+      >
+        {loading ? 'Registrando...' : 'Guardar Venta'}
+      </Button>
     </div>
   );
-}
+};
+
+export default TransaccionForm;
