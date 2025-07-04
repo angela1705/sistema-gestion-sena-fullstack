@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from ..models import Producto
 from .serializer import ProductoSerializer, ProductoCreateUpdateSerializer
-
+from .permissions import EsLiderOAdministrador
 class ProductoViewSet(viewsets.ModelViewSet):
     """
     ViewSet para Productos con soporte para:
@@ -26,6 +26,11 @@ class ProductoViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nombre', 'precio_compra', 'fecha_creacion']
     ordering = ['nombre']
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [EsLiderOAdministrador()]
+        return [IsAuthenticatedOrReadOnly()]
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

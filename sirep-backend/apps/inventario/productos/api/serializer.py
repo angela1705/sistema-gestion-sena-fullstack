@@ -19,6 +19,9 @@ class ProductoSerializer(serializers.ModelSerializer):
     precios_personalizados = serializers.SerializerMethodField()
     precio_para_usuario = serializers.SerializerMethodField()
 
+    comision = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
+    unidad_comision_destino = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Producto
         fields = [
@@ -33,7 +36,8 @@ class ProductoSerializer(serializers.ModelSerializer):
             'precio_final', 'precio_para_usuario', 'precios_personalizados',
             'disponible_para_reservas',
             'imagen', 'imagen_url',
-            'unidad_medida_base', 'unidad_medida_display',
+            'unidad_medida_base', 'unidad_medida_display','comision',
+             'unidad_comision_destino'
         ]
         read_only_fields = ['id', 'precio_descuento', 'precio_final']
         extra_kwargs = {
@@ -98,8 +102,38 @@ class ProductoSerializer(serializers.ModelSerializer):
 
         if data.get('tiene_descuento') and not data.get('porcentaje_descuento'):
             raise serializers.ValidationError({'porcentaje_descuento': 'Debe indicar el porcentaje si hay descuento.'})
+        
+        # --- Validación específica para comisión ---
+        request = self.context['request']
+        user = request.user
+
+        # Extraemos la unidad productiva que está siendo asignada al producto
+        unidadP = data.get('unidadP', getattr(self.instance, 'unidadP', None))
+        es_lider = hasattr(user, 'rol') and user.rol and user.rol.nombre == 'liderup'
+
+        # Verificamos si es el líder de "Tienda Yamboro"
+        es_lider_tienda_yamboro = (
+             es_lider and unidadP and unidadP.nombre.strip().lower() == 'tienda yamboro'
+         )
+
+        if not es_lider_tienda_yamboro:
+        # Si NO es líder de Tienda Yamboro, no debe poder enviar esos campos
+            if 'comision' in data or 'unidad_comision_destino' in data:
+               raise serializers.ValidationError({
+                'detalle': 'Solo el líder de Tienda Yamboro puede definir comisiones.'
+            })
+
+        else:
+        # Si es líder de Tienda Yamboro y pone comisión, debe definir unidad destino
+            if data.get('comision', 0) > 0 and not data.get('unidad_comision_destino'):
+                raise serializers.ValidationError({
+                'unidad_comision_destino': 'Debes indicar la unidad que recibirá la comisión.'
+            })
 
         return data
+
+     
+        
     
 class ProductoSimpleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,7 +151,7 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
             'reservas', 'hora_limite_reserva', 'max_reservas',
             'precio_compra', 'tiene_descuento',
             'porcentaje_descuento', 'imagen',
-            'unidad_medida_base'
+            'unidad_medida_base',"comision","unidad_comision_destino"
         ]
         extra_kwargs = {
             'imagen': {'required': False},
@@ -129,5 +163,11 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
             'porcentaje_descuento': {
                 'min_value': 0,
                 'max_value': 100
-            }
+            },
+            'comision': {
+                'required':False,
+                'min_value': 0,
+                'max_value': 100
+            },
+            'unidad_comision_destino':{'required':False}
         }

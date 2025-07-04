@@ -13,7 +13,7 @@ class Producto(models.Model):
     nombre = models.CharField(max_length=100) 
     descripcion = models.TextField()
     categoria = models.ForeignKey(TipoCategoria, on_delete=models.SET_NULL, null=True, blank=True)
-    unidadP = models.ForeignKey(UnidadProductiva, on_delete=models.SET_NULL, null=True, blank=True)
+    unidadP = models.ForeignKey(UnidadProductiva, on_delete=models.SET_NULL, null=True, blank=True,related_name='productos_creados')
 
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible')
     stock = models.BooleanField(default=True)
@@ -47,6 +47,13 @@ class Producto(models.Model):
         ]
     )
 
+    tiene_comision=models.BooleanField(default=False)
+
+    comision = models.DecimalField(max_digits=5,decimal_places=2,null=True,blank=True,validators=[MinValueValidator(0),
+             MaxValueValidator(100)]) #porcentaje de comision solo para tienda yamboro 
+    
+    unidad_comision_destino = models.ForeignKey(UnidadProductiva,on_delete=models.SET_NULL,null=True,blank=True)#unidad productiva que recibe la comision
+
     def clean(self):
         """Validaciones personalizadas"""
         super().clean()
@@ -77,7 +84,16 @@ class Producto(models.Model):
         if self.stock and self.reservas and self.stock_actual == 0:
             self.estado = 'no_disponible'
             self.reservas = False  # Desactivar reservas si no hay stock
-
+        
+        if self.tiene_comision:
+            if self.comision is None:
+                raise ValidationError({'comision': 'Debes especificar un porcentaje de comisión.'})
+            if self.unidad_comision_destino is None:
+                raise ValidationError({'unidad_comision_destino': 'Debes especificar la unidad que recibe la comisión.'})
+        else:
+            self.comision = None
+            self.unidad_comision_destino = None
+            
     def calcular_precio_descuento(self):
         """Calcula el precio con descuento aplicando redondeo bancario"""
         if not (self.tiene_descuento and self.porcentaje_descuento):
@@ -130,3 +146,4 @@ class Producto(models.Model):
             if precio_personalizado:
                 return precio_personalizado.valor
         return self.precio_final
+    
