@@ -47,6 +47,8 @@ class Producto(models.Model):
         ]
     )
 
+    tiene_comision=models.BooleanField(default=False)
+
     comision = models.DecimalField(max_digits=5,decimal_places=2,null=True,blank=True,validators=[MinValueValidator(0),
              MaxValueValidator(100)]) #porcentaje de comision solo para tienda yamboro 
     
@@ -82,12 +84,15 @@ class Producto(models.Model):
         if self.stock and self.reservas and self.stock_actual == 0:
             self.estado = 'no_disponible'
             self.reservas = False  # Desactivar reservas si no hay stock
-
-        if self.comision is not None:
-            if not self.unidadP or self.unidadP.tipo != 'tiendaY':
-                raise ValidationError({'comision': 'Solo los productos de Tienda Yamboró pueden tener comisión.'})
-            if not self.unidad_comision_destino:
-                raise ValidationError({'unidad_comision_destino': 'Debes especificar a qué unidad se transfiere la comisión.'})
+        
+        if self.tiene_comision:
+            if self.comision is None:
+                raise ValidationError({'comision': 'Debes especificar un porcentaje de comisión.'})
+            if self.unidad_comision_destino is None:
+                raise ValidationError({'unidad_comision_destino': 'Debes especificar la unidad que recibe la comisión.'})
+        else:
+            self.comision = None
+            self.unidad_comision_destino = None
             
     def calcular_precio_descuento(self):
         """Calcula el precio con descuento aplicando redondeo bancario"""
