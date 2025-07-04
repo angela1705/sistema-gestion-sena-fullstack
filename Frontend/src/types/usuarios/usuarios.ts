@@ -2,6 +2,7 @@
 export interface Rol {
   id: number;
   nombre: string;
+  nombre_display?: string; // Añadido para manejar nombre_display
 }
 
 export interface Cargo {
