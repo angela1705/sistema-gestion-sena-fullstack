@@ -1,4 +1,4 @@
-// src/hooks/unidades-productivas/useUnidadesProductivas.ts
+// src/hooks/entidades/useUnidadesProductivas.ts
 import { useState, useEffect } from 'react';
 import { UnidadProductiva } from '../../types/entidades/UnidadProductiva';
 
@@ -10,6 +10,7 @@ export const useUnidadesProductivas = () => {
   const fetchUnidades = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) throw new Error('No se encontró el token de autenticación');
       const response = await fetch('http://localhost:8000/api/unidad-productiva/', {
         headers: {
           Authorization: `Bearer ${token}`,

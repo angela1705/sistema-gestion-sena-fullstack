@@ -1,148 +1,145 @@
-// src/components/global/Tabla.tsx
-import React, { useState } from "react";
-import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Input,
-  Pagination,
-  Select,
-  SelectItem,
-} from "@nextui-org/react";
-import { SedeOption, EncargadoOption } from "../../types/entidades/Options";
+// src/pages/entidades/UnidadesProductivas.tsx
+import React, { useState, useEffect } from 'react';
+import { Button, Card, CardBody } from '@heroui/react';
+import { FaPlus } from 'react-icons/fa';
+import { useUnidadesProductivas } from '../../hook/entidades/useUnidadesProductivas';
+import { useSedeOptions } from '../../hook/entidades/useSedeOptions';
+import { useRegistrarUnidadProductiva } from '../../hook/entidades/useRegistrarUnidadProductiva';
+import Tabla from '../../components/global/Tabla';
+import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react';
+import { RegistrarUnidadProductivaForm } from '../../components/entidades/RegistrarUnidadProductivaForm';
+import { UnidadProductivaFormData } from '../../types/entidades/UnidadProductiva';
+import { EncargadoOption } from '../../types/entidades/Options';
 
-interface Column {
-  uid: string;
-  name: string;
-  render?: (data: any, row: any, options: SedeOption[] | EncargadoOption[]) => React.ReactNode;
+interface UnidadesProductivasProps {
+  isNavbarOpen: boolean;
 }
 
-interface TablaProps {
-  columns: Column[];
-  data: any[] | { count: number; next: string | null; previous: string | null; results: any[] } | undefined;
-  searchableFields?: string[];
-  extraControls?: React.ReactNode;
-  senaEmpresas?: SedeOption[] | EncargadoOption[]; // Unión en lugar de intersección
-  onRowsPerPageChange?: (value: number) => void;
-}
+const columns = [
+  { uid: 'id', name: 'ID' },
+  { uid: 'nombre', name: 'Nombre' },
+  { uid: 'sede_info', name: 'Sede', render: (data: any) => data?.nombre_display || 'N/A' },
+  {
+    uid: 'encargado_info',
+    name: 'Encargado',
+    render: (data: any) => (data ? `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Sin encargado' : 'Sin encargado'),
+  },
+  { uid: 'horario_atencion', name: 'Horario de Atención' },
+  { uid: 'tipo_display', name: 'Tipo' },
+  { uid: 'estado_display', name: 'Estado' },
+];
 
-const Tabla: React.FC<TablaProps> = ({
-  columns,
-  data = [],
-  searchableFields = ["nombre"],
-  extraControls,
-  senaEmpresas = [],
-  onRowsPerPageChange,
-}) => {
-  const [filterValue, setFilterValue] = useState("");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+const searchableFields = ['nombre', 'sede_info.nombre_display', 'encargado_info.first_name', 'encargado_info.last_name', 'tipo_display'];
 
-  // Normalizar datos para que siempre sea un array
-  const normalizedData = Array.isArray(data) ? data : data?.results || [];
-  console.log("Tabla Props - Data:", data, "Normalized Data:", normalizedData, "SenaEmpresas:", senaEmpresas);
+const UnidadesProductivas: React.FC<UnidadesProductivasProps> = ({ isNavbarOpen }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { unidades, loading, error, refetch } = useUnidadesProductivas();
+  const { encargados, loading: optionsLoading, error: optionsError } = useSedeOptions();
+  const { registrarUnidad, loading: registerLoading, error: registerError } = useRegistrarUnidadProductiva();
+  const [tipos, setTipos] = useState<{ value: string; label: string }[]>([]);
 
-  const filteredItems = normalizedData.filter((item: any) =>
-    searchableFields.some((field) => {
-      const value = item[field] || "";
-      return value.toString().toLowerCase().includes(filterValue.toLowerCase());
-    })
-  );
+  useEffect(() => {
+    const fetchTipos = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:8000/api/unidad-productiva/opciones/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Error al obtener opciones');
+        const data = await response.json();
+        const tipos = Object.entries(data.tipos).map(([value, label]) => ({
+          value,
+          label: label as string,
+        }));
+        setTipos(tipos);
+      } catch (err) {
+        console.error('Error al obtener tipos:', err);
+      }
+    };
+    fetchTipos();
+  }, []);
 
-  const pages = Math.ceil(filteredItems.length / rowsPerPage);
-  const items = filteredItems.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const [formData, setFormData] = useState<UnidadProductivaFormData>({
+    nombre: '',
+    tipo: '',
+    sede: '',
+    encargado: '',
+    horario_atencion: '',
+  });
 
-  const onSearchChange = (value: string) => {
-    setFilterValue(value);
-    setPage(1);
+  const handleChange = (field: keyof UnidadProductivaFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const onClear = () => {
-    setFilterValue("");
-    setPage(1);
+  const handleSubmit = async () => {
+    try {
+      console.log('Enviando formData:', formData);
+      await registrarUnidad(formData);
+      setIsModalOpen(false);
+      setFormData({ nombre: '', tipo: '', sede: '', encargado: '', horario_atencion: '' });
+      refetch();
+    } catch (err) {
+      console.error('Error al registrar unidad productiva:', err);
+    }
   };
 
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRowsPerPage = Number(e.target.value);
-    setRowsPerPage(newRowsPerPage);
-    setPage(1);
-    if (onRowsPerPageChange) onRowsPerPageChange(newRowsPerPage);
-  };
+  const safeEncargados: EncargadoOption[] = Array.isArray(encargados) ? encargados : [];
+
+  console.log('Datos en UnidadesProductivas:', { unidades, safeEncargados, formData });
 
   return (
-    <div className="w-full">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
-        <Input
-          isClearable
-          className="w-full sm:w-1/3"
-          placeholder="Buscar por nombre, apellido o identificación"
-          value={filterValue}
-          onClear={onClear}
-          onValueChange={onSearchChange}
-        />
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Filas por página:</span>
-            <Select
-              defaultSelectedKeys={["5"]}
-              className="w-20"
-              size="sm"
-              onChange={handleRowsPerPageChange}
-              aria-label="filasSelector"
-            >
-              <SelectItem key="5" value="5">5</SelectItem>
-              <SelectItem key="10" value="10">10</SelectItem>
-              <SelectItem key="15" value="15">15</SelectItem>
-            </Select>
-          </div>
-          {extraControls}
-        </div>
-      </div>
-      <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <Table aria-label="Tabla de usuarios" className="w-full">
-          <TableHeader>
-            {columns.map((column) => (
-              <TableColumn
-                key={column.uid}
-                className="text-center text-sm bg-gray-200 dark:bg-gray-700"
-              >
-                {column.name}
-              </TableColumn>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {items.map((item, index) => (
-              <TableRow
-                key={item.id || index}
-                className={index % 2 === 0 ? "bg-gray-50 dark:bg-gray-900" : "bg-white dark:bg-gray-800"}
-              >
-                {columns.map((column) => (
-                  <TableCell key={column.uid} className="text-center text-sm whitespace-nowrap">
-                    {column.render
-                      ? column.render(item[column.uid], item, senaEmpresas)
-                      : item[column.uid] ?? "N/A"}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="flex justify-center p-2">
-          <Pagination
-            isCompact
-            showControls
-            color="primary"
-            page={page}
-            total={pages}
-            onChange={setPage}
+    <div
+      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${
+        isNavbarOpen ? 'ml-64' : 'ml-16'
+      } flex items-center justify-center`}
+    >
+      <Card className="w-full max-w-5xl">
+        <CardBody className="flex flex-col p-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Unidades Productivas</h1>
+          {loading && <p className="text-gray-500">Cargando unidades...</p>}
+          {(error || optionsError || registerError) && (
+            <p className="text-red-500 mb-4">{error || optionsError || registerError}</p>
+          )}
+          {unidades?.length === 0 && !loading && !error && (
+            <p className="text-gray-500 mb-4">No hay unidades productivas para mostrar.</p>
+          )}
+          <Tabla
+            columns={columns}
+            data={unidades || []}
+            searchableFields={searchableFields}
+            extraControls={
+              <div className="flex items-center gap-4">
+                <Button
+                  onPress={() => setIsModalOpen(true)}
+                  color="primary"
+                  startContent={<FaPlus />}
+                >
+                  Registrar
+                </Button>
+              </div>
+            }
           />
-        </div>
-      </div>
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            <ModalContent>
+              <ModalHeader>Registrar Nueva Unidad Productiva</ModalHeader>
+              <ModalBody>
+                <RegistrarUnidadProductivaForm
+                  formData={formData}
+                  encargados={safeEncargados}
+                  tipos={tipos}
+                  onChange={handleChange}
+                  onSubmit={handleSubmit}
+                  loading={registerLoading}
+                  error={registerError}
+                  optionsLoading={optionsLoading}
+                />
+              </ModalBody>
+            </ModalContent>
+          </Modal>
+        </CardBody>
+      </Card>
     </div>
   );
 };
 
-export default Tabla;
+export default UnidadesProductivas;

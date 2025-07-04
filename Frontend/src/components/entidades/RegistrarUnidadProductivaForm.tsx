@@ -1,12 +1,11 @@
 // src/components/entidades/RegistrarUnidadProductivaForm.tsx
-import { Button, Input } from "@nextui-org/react";
-import { Select, SelectItem } from "@heroui/select";
-import { UnidadProductivaFormData } from "../../types/entidades/UnidadProductiva";
-import { SedeOption, EncargadoOption } from "../../types/entidades/Options";
+import React, { useState, useEffect } from 'react';
+import { Button, Input, Select, SelectItem } from '@heroui/react';
+import { UnidadProductivaFormData } from '../../types/entidades/UnidadProductiva';
+import { EncargadoOption } from '../../types/entidades/Options';
 
-interface UnidadProductivaFormProps {
+interface RegistrarUnidadProductivaFormProps {
   formData: UnidadProductivaFormData;
-  sedes: SedeOption[];
   encargados: EncargadoOption[];
   tipos: { value: string; label: string }[];
   onChange: (field: keyof UnidadProductivaFormData, value: string) => void;
@@ -16,9 +15,8 @@ interface UnidadProductivaFormProps {
   optionsLoading: boolean;
 }
 
-export const RegistrarUnidadProductivaForm = ({
+export const RegistrarUnidadProductivaForm: React.FC<RegistrarUnidadProductivaFormProps> = ({
   formData,
-  sedes = [],
   encargados = [],
   tipos = [],
   onChange,
@@ -26,7 +24,39 @@ export const RegistrarUnidadProductivaForm = ({
   loading,
   error,
   optionsLoading,
-}: UnidadProductivaFormProps) => {
+}) => {
+  const [sedes, setSedes] = useState<{ id: string; nombre_display: string }[]>([]);
+  const [sedesLoading, setSedesLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSedes = async () => {
+      setSedesLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:8000/api/sedes/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Error al obtener sedes');
+        const data = await response.json();
+        console.log('Respuesta de /api/sedes/:', data);
+        const normalizedSedes = Array.isArray(data) ? data : data.results || [];
+        setSedes(
+          normalizedSedes.map((sede: any) => ({
+            id: sede.id.toString(),
+            nombre_display: sede.nombre_display,
+          }))
+        );
+      } catch (err) {
+        console.error('Error al obtener sedes:', err);
+      } finally {
+        setSedesLoading(false);
+      }
+    };
+    fetchSedes();
+  }, []);
+
+  console.log('RegistrarUnidadProductivaForm - Datos:', { formData, sedes, encargados, tipos });
+
   return (
     <div className="space-y-4">
       {error && (
@@ -35,80 +65,102 @@ export const RegistrarUnidadProductivaForm = ({
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Seleccione el tipo*</label>
-        <div className="flex gap-2">
-          {tipos.map((option) => (
-            <Button
-              key={option.value}
-              variant={formData.tipo === option.value ? "solid" : "bordered"}
-              color="primary"
-              onPress={() => onChange("tipo", option.value)}
-              className="flex-1"
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
       <Input
         label="Nombre*"
+        placeholder="Ingrese el nombre de la unidad"
         value={formData.nombre}
-        onChange={(e) => onChange("nombre", e.target.value)}
+        onChange={(e) => onChange('nombre', e.target.value)}
         isRequired
+        isDisabled={optionsLoading || sedesLoading}
         className="w-full"
       />
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Sede*</label>
-        <Select
-          label="Sede"
-          selectedKeys={formData.sede ? [formData.sede] : []}
-          onChange={(e) => onChange("sede", e.target.value)}
-          className="w-full"
-          isRequired
-          isLoading={optionsLoading}
-          isDisabled={optionsLoading || !sedes.length}
-        >
-          {Array.isArray(sedes) && sedes.length > 0 ? (
-            sedes.map((sede) => (
-              <SelectItem key={sede.id.toString()} textValue={sede.nombre_display}>
-                {sede.nombre_display}
-              </SelectItem>
-            ))
-          ) : (
-            <SelectItem key="no-sedes" textValue="No hay sedes disponibles" isDisabled>
-              No hay sedes disponibles
+      <Select
+        label="Tipo*"
+        placeholder="Seleccione el tipo"
+        selectedKeys={formData.tipo ? [formData.tipo] : []}
+        onSelectionChange={(keys) => {
+          const value = Array.from(keys)[0]?.toString() || '';
+          console.log('Select tipo - Valor seleccionado:', value);
+          onChange('tipo', value);
+        }}
+        isRequired
+        isDisabled={optionsLoading || tipos.length === 0}
+        className="w-full"
+      >
+        {tipos.length === 0 ? (
+          <SelectItem key="no-options" isDisabled>
+            No hay tipos disponibles
+          </SelectItem>
+        ) : (
+          tipos.map((tipo) => (
+            <SelectItem key={tipo.value}>
+              {tipo.label}
             </SelectItem>
-          )}
-        </Select>
-      </div>
+          ))
+        )}
+      </Select>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Encargado*</label>
-        <Select
-          label="Encargado"
-          selectedKeys={formData.encargado ? [formData.encargado] : []}
-          onChange={(e) => onChange("encargado", e.target.value)}
-          className="w-full"
-          isRequired
-          isLoading={optionsLoading}
-          isDisabled={optionsLoading || !encargados.length}
-        >
-          {Array.isArray(encargados) && encargados.length > 0 ? (
-            encargados.map((encargado) => (
-              <SelectItem key={encargado.id.toString()} textValue={encargado.nombre_completo}>
-                {encargado.nombre_completo}
-              </SelectItem>
-            ))
-          ) : (
-            <SelectItem key="no-encargados" textValue="No hay encargados disponibles" isDisabled>
-              No hay encargados disponibles
+      <Select
+        label="Sede*"
+        placeholder="Seleccione la sede"
+        selectedKeys={formData.sede ? [formData.sede] : []}
+        onSelectionChange={(keys) => {
+          const value = Array.from(keys)[0]?.toString() || '';
+          console.log('Select sede - Valor seleccionado:', value);
+          onChange('sede', value);
+        }}
+        isRequired
+        isDisabled={sedesLoading || sedes.length === 0}
+        className="w-full"
+      >
+        {sedes.length === 0 ? (
+          <SelectItem key="no-options" isDisabled>
+            No hay sedes disponibles
+          </SelectItem>
+        ) : (
+          sedes.map((sede) => (
+            <SelectItem key={sede.id}>
+              {sede.nombre_display}
             </SelectItem>
-          )}
-        </Select>
-      </div>
+          ))
+        )}
+      </Select>
+
+      <Select
+        label="Encargado"
+        placeholder="Seleccione el encargado"
+        selectedKeys={formData.encargado ? [formData.encargado] : []}
+        onSelectionChange={(keys) => {
+          const value = Array.from(keys)[0]?.toString() || '';
+          console.log('Select encargado - Valor seleccionado:', value);
+          onChange('encargado', value);
+        }}
+        isDisabled={optionsLoading || encargados.length === 0}
+        className="w-full"
+      >
+        {encargados.length === 0 ? (
+          <SelectItem key="no-options" isDisabled>
+            No hay encargados disponibles
+          </SelectItem>
+        ) : (
+          encargados.map((encargado) => (
+            <SelectItem key={encargado.id.toString()}>
+              {encargado.nombre_completo}
+            </SelectItem>
+          ))
+        )}
+      </Select>
+
+      <Input
+        label="Horario de Atención*"
+        placeholder="Ingrese el horario de atención"
+        value={formData.horario_atencion}
+        onChange={(e) => onChange('horario_atencion', e.target.value)}
+        isRequired
+        isDisabled={optionsLoading || sedesLoading}
+        className="w-full"
+      />
 
       <div className="flex justify-end pt-4">
         <Button
@@ -120,11 +172,11 @@ export const RegistrarUnidadProductivaForm = ({
             !formData.nombre ||
             !formData.tipo ||
             !formData.sede ||
-            !formData.encargado
+            !formData.horario_atencion
           }
           className="w-full md:w-auto"
         >
-          {loading ? "Guardando..." : "Guardar Unidad"}
+          {loading ? 'Guardando...' : 'Guardar Unidad'}
         </Button>
       </div>
     </div>

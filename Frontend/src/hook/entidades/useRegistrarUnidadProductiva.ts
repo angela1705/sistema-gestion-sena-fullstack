@@ -1,4 +1,4 @@
-
+// src/hooks/entidades/useRegistrarUnidadProductiva.ts
 import { useState } from 'react';
 import { UnidadProductivaFormData } from '../../types/entidades/UnidadProductiva';
 
@@ -11,6 +11,11 @@ export const useRegistrarUnidadProductiva = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token');
+      if (!token) throw new Error('No se encontró el token de autenticación');
+
+      const encargadoId = formData.encargado ? parseInt(formData.encargado) : null;
+      console.log('Enviando datos al backend:', { ...formData, encargado: encargadoId }); // Añadir log
+
       const response = await fetch('http://localhost:8000/api/unidad-productiva/', {
         method: 'POST',
         headers: {
@@ -21,7 +26,8 @@ export const useRegistrarUnidadProductiva = () => {
           nombre: formData.nombre,
           tipo: formData.tipo,
           sede: parseInt(formData.sede),
-          encargado: parseInt(formData.encargado),
+          encargado: encargadoId,
+          horario_atencion: formData.horario_atencion,
         }),
       });
 
@@ -30,7 +36,9 @@ export const useRegistrarUnidadProductiva = () => {
         throw new Error(errorData.detail || 'Error al registrar unidad productiva');
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Unidad registrada:', result);
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
       throw err;
