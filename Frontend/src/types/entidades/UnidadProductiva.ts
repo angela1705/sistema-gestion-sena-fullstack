@@ -1,4 +1,4 @@
-// src/types/UnidadProductiva.ts
+// src/types/entidades/UnidadProductiva.ts
 export interface UnidadProductiva {
   id: number;
   nombre: string;
@@ -20,4 +20,5 @@ export interface UnidadProductivaFormData {
   tipo: string;
   sede: string;
   encargado: string;
+  horario_atencion: string; // Nuevo campo
 }

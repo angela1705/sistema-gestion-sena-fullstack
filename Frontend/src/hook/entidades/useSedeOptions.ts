@@ -1,57 +1,60 @@
-// src/hooks/entidades/useSedeOptions.ts
-import { useState, useEffect } from "react";
+
+// src/hook/entidades/useSedeOptions.ts
+import { useState, useEffect } from 'react';
+import { SedeOption, EncargadoOption } from '../../types/entidades/Options';
 
 export const useSedeOptions = () => {
-  const [senaEmpresas, setSenaEmpresas] = useState<any[]>([]);
+  const [sedes, setSedes] = useState<SedeOption[]>([]);
+  const [encargados, setEncargados] = useState<EncargadoOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEmpresas = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      console.log("Token para /api/empresas-sena/:", token);
-      if (!token) {
-        throw new Error("No hay token de autenticación");
-      }
-
-      const response = await fetch("http://localhost:8000/api/empresas-sena/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Response status /api/empresas-sena/:", response.status);
-      console.log("Response ok:", response.ok);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log("Datos de /api/empresas-sena/:", JSON.stringify(data, null, 2));
-
-      // Normalizar datos: extraer results si es un objeto paginado
-      const normalizedData = Array.isArray(data) ? data : data.results || [];
-      if (!Array.isArray(normalizedData)) {
-        console.error("Formato de datos inválido, recibido:", JSON.stringify(data, null, 2));
-        throw new Error("Formato de datos inválido");
-      }
-
-      setSenaEmpresas(normalizedData);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Error desconocido";
-      console.error("Error al obtener empresas:", errorMessage);
-      setError(errorMessage);
-      setSenaEmpresas([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchEmpresas();
+    const fetchOptions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No se encontró el token de autenticación');
+
+        // Obtener sedes
+        const sedesResponse = await fetch('http://localhost:8000/api/sedes/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!sedesResponse.ok) throw new Error('Error al obtener sedes');
+        const sedesData = await sedesResponse.json();
+        console.log('Respuesta de /api/sedes/:', sedesData);
+        const normalizedSedes = Array.isArray(sedesData) ? sedesData : sedesData.results || [];
+        setSedes(
+          normalizedSedes.map((sede: any) => ({
+            id: sede.id,
+            nombre_display: sede.nombre,
+          }))
+        );
+
+        // Obtener encargados
+        const encargadosResponse = await fetch('http://localhost:8000/api/personas/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!encargadosResponse.ok) throw new Error('Error al obtener encargados');
+        const encargadosData = await encargadosResponse.json();
+        console.log('Respuesta de /api/personas/:', encargadosData);
+        const normalizedEncargados = Array.isArray(encargadosData) ? encargadosData : encargadosData.results || [];
+        setEncargados(
+          normalizedEncargados.map((persona: any) => ({
+            id: persona.id,
+            nombre_completo: `${persona.first_name} ${persona.last_name}`,
+          }))
+        );
+      } catch (err) {
+        console.error('Error en useSedeOptions:', err);
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+        setSedes([]);
+        setEncargados([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOptions();
   }, []);
 
-  return { senaEmpresas, loading, error, refetch: fetchEmpresas };
+  return { sedes, encargados, loading, error };
 };

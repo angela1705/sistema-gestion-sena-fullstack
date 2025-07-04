@@ -1,66 +1,70 @@
-
-import { useState } from 'react';
-import { Button, Card, CardBody } from '@nextui-org/react';
+// src/pages/entidades/UnidadesProductivas.tsx
+import React, { useState, useEffect } from 'react';
+import { Button, Card, CardBody } from '@heroui/react';
 import { FaPlus } from 'react-icons/fa';
 import { useUnidadesProductivas } from '../../hook/entidades/useUnidadesProductivas';
+import { useSedeOptions } from '../../hook/entidades/useSedeOptions';
 import { useRegistrarUnidadProductiva } from '../../hook/entidades/useRegistrarUnidadProductiva';
-import { useUnidadProductivaOptions } from '../../hook/entidades/useUnidadProductivaOptions';
-import { RegistrarUnidadProductivaForm } from '../../components/entidades/RegistrarUnidadProductivaForm';
-import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
 import Tabla from '../../components/global/Tabla';
+import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react';
+import { RegistrarUnidadProductivaForm } from '../../components/entidades/RegistrarUnidadProductivaForm';
 import { UnidadProductivaFormData } from '../../types/entidades/UnidadProductiva';
+import { EncargadoOption } from '../../types/entidades/Options';
+
+interface UnidadesProductivasProps {
+  isNavbarOpen: boolean;
+}
+
 const columns = [
+  { uid: 'id', name: 'ID' },
   { uid: 'nombre', name: 'Nombre' },
-  { uid: 'tipo_display', name: 'Tipo' },
-  { uid: 'estado_display', name: 'Estado' },
-  {
-    uid: 'sede_info',
-    name: 'Sede',
-    render: (data: any, row: any, sedes: any[]) => {
-      console.log('Render sede_info:', { data, row, sedes });
-      if (data && typeof data === 'object' && data.nombre_display) {
-        return data.nombre_display;
-      }
-      const sede = sedes?.find((s) => s?.id === parseInt(data));
-      return sede ? sede.nombre_display : 'Sin sede';
-    },
-  },
+  { uid: 'sede_info', name: 'Sede', render: (data: any) => data?.nombre_display || 'N/A' },
   {
     uid: 'encargado_info',
     name: 'Encargado',
-    render: (data: any, row: any, encargados: any[]) => {
-      console.log('Render encargado_info:', { data, row, encargados });
-      if (data && typeof data === 'object' && data.nombre_completo) {
-        return data.nombre_completo;
-      }
-      const encargado = encargados?.find((e) => e?.id === parseInt(data));
-      return encargado ? encargado.nombre_completo : 'Sin encargado';
-    },
+    render: (data: any) => (data ? `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Sin encargado' : 'Sin encargado'),
   },
-  { uid: 'horario_atencion', name: 'Horario Atención' },
-  {
-    uid: 'fecha_creacion',
-    name: 'Fecha Creación',
-    render: (data: string) => new Date(data).toLocaleDateString(),
-  },
+  { uid: 'horario_atencion', name: 'Horario de Atención' },
+  { uid: 'tipo_display', name: 'Tipo' },
+  { uid: 'estado_display', name: 'Estado' },
 ];
 
-const searchableFields = ['nombre', 'tipo_display', 'estado_display', 'horario_atencion'];
+const searchableFields = ['nombre', 'sede_info.nombre_display', 'encargado_info.first_name', 'encargado_info.last_name', 'tipo_display'];
 
-export default function UnidadesProductivas({ isNavbarOpen }: { isNavbarOpen: boolean }) {
+const UnidadesProductivas: React.FC<UnidadesProductivasProps> = ({ isNavbarOpen }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { unidades, loading: unidadesLoading, error: unidadesError, refetch } = useUnidadesProductivas();
+  const { unidades, loading, error, refetch } = useUnidadesProductivas();
+  const { encargados, loading: optionsLoading, error: optionsError } = useSedeOptions();
   const { registrarUnidad, loading: registerLoading, error: registerError } = useRegistrarUnidadProductiva();
-  const { sedes, encargados, loading: optionsLoading, error: optionsError } = useUnidadProductivaOptions();
+  const [tipos, setTipos] = useState<{ value: string; label: string }[]>([]);
 
-  console.log('Estado de unidades:', { unidades, unidadesLoading, unidadesError });
-  console.log('Estado de opciones:', { sedes, encargados, optionsLoading, optionsError });
+  useEffect(() => {
+    const fetchTipos = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:8000/api/unidad-productiva/opciones/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Error al obtener opciones');
+        const data = await response.json();
+        const tipos = Object.entries(data.tipos).map(([value, label]) => ({
+          value,
+          label: label as string,
+        }));
+        setTipos(tipos);
+      } catch (err) {
+        console.error('Error al obtener tipos:', err);
+      }
+    };
+    fetchTipos();
+  }, []);
 
   const [formData, setFormData] = useState<UnidadProductivaFormData>({
     nombre: '',
     tipo: '',
     sede: '',
     encargado: '',
+    horario_atencion: '',
   });
 
   const handleChange = (field: keyof UnidadProductivaFormData, value: string) => {
@@ -69,19 +73,19 @@ export default function UnidadesProductivas({ isNavbarOpen }: { isNavbarOpen: bo
 
   const handleSubmit = async () => {
     try {
+      console.log('Enviando formData:', formData);
       await registrarUnidad(formData);
       setIsModalOpen(false);
-      setFormData({
-        nombre: '',
-        tipo: '',
-        sede: '',
-        encargado: '',
-      });
+      setFormData({ nombre: '', tipo: '', sede: '', encargado: '', horario_atencion: '' });
       refetch();
     } catch (err) {
-      console.error('Error al registrar unidad:', err);
+      console.error('Error al registrar unidad productiva:', err);
     }
   };
+
+  const safeEncargados: EncargadoOption[] = Array.isArray(encargados) ? encargados : [];
+
+  console.log('Datos en UnidadesProductivas:', { unidades, safeEncargados, formData });
 
   return (
     <div
@@ -91,22 +95,18 @@ export default function UnidadesProductivas({ isNavbarOpen }: { isNavbarOpen: bo
     >
       <Card className="w-full max-w-5xl">
         <CardBody className="flex flex-col p-6">
-          <div className="flex flex-col sm:flex-col justify-start mb-4 gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Lista de Unidades Productivas</h1>
-          </div>
-
-          {unidadesLoading && <p className="text-gray-500">Cargando unidades productivas...</p>}
-          {unidadesError && <p className="text-red-500 mb-4">{unidadesError}</p>}
-          {optionsError && <p className="text-red-500 mb-4">Error al cargar opciones: {optionsError}</p>}
-          {unidades?.length === 0 && !unidadesLoading && !unidadesError && (
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Unidades Productivas</h1>
+          {loading && <p className="text-gray-500">Cargando unidades...</p>}
+          {(error || optionsError || registerError) && (
+            <p className="text-red-500 mb-4">{error || optionsError || registerError}</p>
+          )}
+          {unidades?.length === 0 && !loading && !error && (
             <p className="text-gray-500 mb-4">No hay unidades productivas para mostrar.</p>
           )}
           <Tabla
             columns={columns}
             data={unidades || []}
             searchableFields={searchableFields}
-            sedes={sedes || []}
-            encargados={encargados || []}
             extraControls={
               <div className="flex items-center gap-4">
                 <Button
@@ -119,19 +119,18 @@ export default function UnidadesProductivas({ isNavbarOpen }: { isNavbarOpen: bo
               </div>
             }
           />
-
           <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
             <ModalContent>
               <ModalHeader>Registrar Nueva Unidad Productiva</ModalHeader>
               <ModalBody>
                 <RegistrarUnidadProductivaForm
                   formData={formData}
-                  sedes={sedes || []}
-                  encargados={encargados || []}
+                  encargados={safeEncargados}
+                  tipos={tipos}
                   onChange={handleChange}
                   onSubmit={handleSubmit}
                   loading={registerLoading}
-                  error={registerError || optionsError}
+                  error={registerError}
                   optionsLoading={optionsLoading}
                 />
               </ModalBody>
@@ -141,4 +140,6 @@ export default function UnidadesProductivas({ isNavbarOpen }: { isNavbarOpen: bo
       </Card>
     </div>
   );
-}
+};
+
+export default UnidadesProductivas;

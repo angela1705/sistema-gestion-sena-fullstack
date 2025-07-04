@@ -1,74 +1,49 @@
-import { useState, useEffect } from "react";
-import { Persona } from "../../types/usuarios/usuarios";
-import { useNavigate } from "react-router-dom";
+// src/hook/usuarios/useUsuarios.ts (suposición basada en Inicio.tsx)
+import { useState, useEffect } from 'react';
+import { Persona } from '../../types/usuarios/usuarios';
 
-interface UseUsuariosResponse {
+export interface UseUsuariosResponse {
   usuarios: Persona[];
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
-  retry: () => void;
+  refetch: () => Promise<void>;
 }
 
-export const useUsuarios = (apiUrl: string = "http://localhost:8000/api/personas/"): UseUsuariosResponse => {
+export const useUsuarios = (): UseUsuariosResponse => {
   const [usuarios, setUsuarios] = useState<Persona[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const fetchUsuarios = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      setError("No estás autenticado. Por favor, inicia sesión.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(apiUrl, {
-        method: "GET",
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No se encontró el token de autenticación');
+
+      const response = await fetch('http://localhost:8000/api/personas/', {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 404) {
-          throw new Error("No se encontró la lista de usuarios. Verifica que la URL de la API sea correcta.");
-        } else if (response.status === 403) {
-          throw new Error("No tienes permisos para ver esta página. Debes ser administrador.");
-        } else {
-          throw new Error(`Error ${response.status}: ${errorText}`);
-        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al cargar usuarios');
       }
 
       const data = await response.json();
-      console.log("Datos de la API (usuarios):", data); // Depuración
-      const usuariosData = Array.isArray(data) ? data : (data.results || []); // Manejo de paginación
-      if (!Array.isArray(usuariosData)) {
-        throw new Error("La respuesta de la API no contiene un arreglo de usuarios.");
-      }
-      setUsuarios(usuariosData); // Mantiene los datos originales
+      const normalizedData: Persona[] = Array.isArray(data) ? data : data.results || [];
+      setUsuarios(normalizedData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido al cargar los usuarios.");
-      console.error("Error fetching usuarios:", err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUsuarios();
-  }, [apiUrl, navigate]);
+  }, []);
 
-  const retry = () => {
-    setIsLoading(true);
-    setError(null);
-    fetchUsuarios();
-  };
-
-  return { usuarios, isLoading, error, retry };
+  return { usuarios, loading, error, refetch: fetchUsuarios };
 };

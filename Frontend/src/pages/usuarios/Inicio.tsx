@@ -41,10 +41,10 @@ const getApiUrl = () => {
 const Inicio: React.FC<InicioProps> = ({ isNavbarOpen }) => {
   const { productos, loading, error: productosError } = useProductos();
   const { registrarReserva, loading: registerLoading, error: registerError } = useRegistrarReserva();
-  const { usuarios, loading: usuariosLoading, error: usuariosError } = useUsuarios();
+  const { loading: usuariosLoading, error: usuariosError } = useUsuarios(); // Eliminado usuarios
   const apiUrl = getApiUrl();
   const token = localStorage.getItem("token");
-  const [cantidad, setCantidad] = useState<{ [key: number]: number | string | undefined }>({}); // Permitimos string para el input
+  const [cantidad, setCantidad] = useState<{ [key: number]: number | string | undefined }>({});
 
   const getCurrentUserId = () => {
     if (!token) {
@@ -68,7 +68,7 @@ const Inicio: React.FC<InicioProps> = ({ isNavbarOpen }) => {
     console.log("API URL usada:", apiUrl);
     if (productos && productos.length > 0) {
       productos.forEach((producto) => {
-        const imageSrc = producto.imagen_url ?? "http://localhost:8000/static/placeholder.jpg"; // Lógica original
+        const imageSrc = producto.imagen_url ?? "http://localhost:8000/static/placeholder.jpg";
         console.log(`Imagen para ${producto.nombre}: ${imageSrc}`);
       });
     } else {
@@ -103,8 +103,8 @@ const Inicio: React.FC<InicioProps> = ({ isNavbarOpen }) => {
   };
 
   const handleCantidadChange = (productoId: number, value: string) => {
-    console.log(`Cambiando cantidad para producto ${productoId}:`, value); // Depuración
-    setCantidad((prev) => ({ ...prev, [productoId]: value })); // Guardamos como string
+    console.log(`Cambiando cantidad para producto ${productoId}:`, value);
+    setCantidad((prev) => ({ ...prev, [productoId]: value }));
   };
 
   return (
@@ -153,7 +153,7 @@ const Inicio: React.FC<InicioProps> = ({ isNavbarOpen }) => {
           {!loading && !productosError && productos.length > 0 && (
             <div className="gap-2 grid grid-cols-2 sm:grid-cols-4">
               {productos.map((producto) => {
-                const imageSrc = producto.imagen_url ?? "http://localhost:8000/static/placeholder.jpg"; // Lógica original
+                const imageSrc = producto.imagen_url ?? "http://localhost:8000/static/placeholder.jpg";
                 return (
                   <Card key={producto.id} isPressable shadow="sm" onPress={() => console.log("item pressed")}>
                     <CardBody className="overflow-visible p-0">
@@ -172,7 +172,7 @@ const Inicio: React.FC<InicioProps> = ({ isNavbarOpen }) => {
                         <Button
                           color="primary"
                           size="sm"
-                          onPress={() => handleReservar(producto.id, cantidad[producto.id])}
+                          onPress={() => handleReservar(producto.id, cantidad[producto.id] ?? 1)} // Usar ?? para manejar undefined
                           isLoading={registerLoading}
                           disabled={!currentUserId || registerLoading || usuariosLoading}
                         >
@@ -181,7 +181,7 @@ const Inicio: React.FC<InicioProps> = ({ isNavbarOpen }) => {
                         <Input
                           type="number"
                           min="1"
-                          value={cantidad[producto.id] ? cantidad[producto.id].toString() : ""}
+                          value={cantidad[producto.id]?.toString() ?? ""} // Usar ?? para manejar undefined
                           onChange={(e) => handleCantidadChange(producto.id, e.target.value)}
                           placeholder="Cantidad"
                           size="sm"

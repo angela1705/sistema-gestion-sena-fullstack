@@ -1,3 +1,4 @@
+// src/pages/Productos.tsx
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { FaPlus } from 'react-icons/fa';
@@ -10,7 +11,9 @@ import Tabla from '../../components/global/Tabla';
 import { ProductoFormData } from '../../types/inventario/Producto';
 
 const columns = [
+  { uid: 'id', name: 'ID' },
   { uid: 'nombre', name: 'Nombre' },
+  { uid: 'descripcion', name: 'Descripción' },
   {
     uid: 'categoria_info',
     name: 'Categoría',
@@ -19,16 +22,24 @@ const columns = [
   {
     uid: 'unidadP_info',
     name: 'Unidad Productiva',
-    render: (data: any) => data?.nombre || 'Sin unidad',
+    render: (data: any) => data?.nombre || 'Sin unidad productiva',
   },
-  { uid: 'estado_display', name: 'Estado' },
-  { uid: 'stock', name: 'Gestiona Stock', render: (data: any) => data ? 'Sí' : 'No' },
-  { uid: 'precio_final', name: 'Precio Final' },
-  { uid: 'stock_actual', name: 'Stock Actual', render: (data: any) => data ?? '-' },
-  { uid: 'max_reservas', name: 'Máx. Reservas', render: (data: any) => data ?? '-' },
+  {
+    uid: 'estado_display',
+    name: 'Estado',
+  },
+  {
+    uid: 'precio_final',
+    name: 'Precio Final',
+  },
+  {
+    uid: 'disponible_para_reservas',
+    name: 'Reservas',
+    render: (data: boolean) => (data ? 'Sí' : 'No'),
+  },
 ];
 
-const searchableFields = ['nombre', 'categoria_info.nombre', 'unidadP_info.nombre'];
+const searchableFields = ['nombre', 'descripcion', 'categoria_info.nombre', 'unidadP_info.nombre', 'estado_display'];
 
 export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,8 +56,8 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
     categoria: '',
     unidadP: '',
     estado: 'disponible',
-    stock: true, // Valor por defecto alineado con el modelo
-    reservas: true,
+    stock: false,
+    reservas: false,
     hora_limite_reserva: '',
     stock_actual: undefined,
     max_reservas: undefined,
@@ -71,8 +82,8 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
         categoria: '',
         unidadP: '',
         estado: 'disponible',
-        stock: true,
-        reservas: true,
+        stock: false,
+        reservas: false,
         hora_limite_reserva: '',
         stock_actual: undefined,
         max_reservas: undefined,
@@ -82,10 +93,9 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
         imagen: null,
         unidad_medida_base: 'unidad',
       });
-      await refetch();
+      refetch();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error del servidor: respuesta no válida';
-      console.error('Error al registrar producto:', errorMessage);
+      console.error('Error al registrar producto:', err);
     }
   };
 
@@ -102,8 +112,9 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
           </div>
 
           {productosLoading && <p className="text-gray-500">Cargando productos...</p>}
-          {productosError && <p className="text-red-500 mb-4">Error al cargar productos: {productosError}</p>}
-          {optionsError && <p className="text-red-500 mb-4">Error al cargar opciones: {optionsError}</p>}
+          {(productosError || optionsError) && (
+            <p className="text-red-500 mb-4">{productosError || optionsError}</p>
+          )}
           {productos?.length === 0 && !productosLoading && !productosError && (
             <p className="text-gray-500 mb-4">No hay productos para mostrar.</p>
           )}
@@ -111,8 +122,6 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
             columns={columns}
             data={productos || []}
             searchableFields={searchableFields}
-            categorias={categorias || []}
-            unidades={unidades || []}
             extraControls={
               <div className="flex items-center gap-4">
                 <Button
@@ -126,18 +135,18 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
             }
           />
 
-          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="4xl">
-            <ModalContent className="max-w-4xl">
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            <ModalContent>
               <ModalHeader>Registrar Nuevo Producto</ModalHeader>
               <ModalBody>
                 <RegistrarProductoForm
                   formData={formData}
-                  categorias={categorias || []}
-                  unidades={unidades || []}
+                  categorias={categorias}
+                  unidades={unidades}
                   onChange={handleChange}
                   onSubmit={handleSubmit}
                   loading={registerLoading}
-                  error={registerError || optionsError || productosError}
+                  error={registerError}
                   optionsLoading={optionsLoading}
                 />
               </ModalBody>

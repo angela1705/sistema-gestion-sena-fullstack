@@ -1,3 +1,18 @@
+// src/types/entidades/sede.ts
+export interface SedeOption {
+  id: number;
+  nombre_display: string;
+}
+
+export interface SedeFormData {
+  nombre: string; // Texto libre
+  sena_empresa: string; // ID de SenaEmpresa
+  direccion: string;
+  telefono: string;
+  responsable: string;
+  activa: boolean;
+}
+
 export interface Sede {
   id: number;
   nombre: string;
@@ -12,13 +27,4 @@ export interface Sede {
   responsable: string | null;
   activa: boolean;
   fecha_creacion: string;
-}
-
-export interface SedeFormData {
-  nombre: string;
-  sena_empresa: string;
-  direccion: string;
-  telefono: string;
-  responsable: string;
-  activa: boolean;
 }

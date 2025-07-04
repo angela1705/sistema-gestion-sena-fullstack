@@ -1,40 +1,29 @@
-
-// src/types/gestion_operativa/transaccion.ts
 export enum TipoTransaccion {
   VENTA = 'venta',
   COMPRA = 'compra',
-  DEVOLUCION = 'devolucion',
-  AJUSTE = 'ajuste',
-}
-
-export interface Producto {
-  id: number;
-  nombre: string;
-  stock_actual?: number;
-  activo?: boolean;
-}
-
-export interface Persona {
-  id: number;
-  nombre_completo: string;
 }
 
 export interface Transaccion {
   id: number;
   tipo: TipoTransaccion;
   tipo_display: string;
-  producto: number;
-  producto_info: Producto;
+  producto: number | null;
+  producto_info: { nombre: string } | null;
+  nombre_producto: string | null;
   cantidad: number;
+  monto_venta: number | null;
+  costo: number | null;
   fecha: string;
   usuario: number | null;
-  usuario_info: Persona | null;
-  transaccion_revertida_id: number | null;
+  usuario_info: { first_name: string } | null;
 }
 
 export interface TransaccionCreateData {
   tipo: TipoTransaccion;
-  producto: number;
+  producto?: number;
+  nombre_producto?: string;
   cantidad: number;
-  usuario?: number | null;
+  monto_venta?: number;
+  costo?: number;
+  usuario?: number;
 }

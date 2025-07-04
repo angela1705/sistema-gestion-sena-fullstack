@@ -1,5 +1,5 @@
 // src/components/global/Tabla.tsx
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -11,12 +11,13 @@ import {
   Pagination,
   Select,
   SelectItem,
-} from "@nextui-org/react";
+} from '@heroui/react';
+import { SedeOption } from '../../types/entidades/Options';
 
 interface Column {
   uid: string;
   name: string;
-  render?: (data: any, row: any, senaEmpresas: any[]) => React.ReactNode;
+  render?: (data: any, row: any, options: SedeOption[]) => React.ReactNode;
 }
 
 interface TablaProps {
@@ -24,29 +25,28 @@ interface TablaProps {
   data: any[] | { count: number; next: string | null; previous: string | null; results: any[] } | undefined;
   searchableFields?: string[];
   extraControls?: React.ReactNode;
-  senaEmpresas?: any[];
+  senaEmpresas?: SedeOption[];
   onRowsPerPageChange?: (value: number) => void;
 }
 
 const Tabla: React.FC<TablaProps> = ({
   columns,
   data = [],
-  searchableFields = ["nombre"],
+  searchableFields = ['nombre'],
   extraControls,
   senaEmpresas = [],
   onRowsPerPageChange,
 }) => {
-  const [filterValue, setFilterValue] = useState("");
+  const [filterValue, setFilterValue] = useState('');
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Normalizar data para que siempre sea un array
   const normalizedData = Array.isArray(data) ? data : data?.results || [];
-  console.log("Tabla Props - Data:", data, "Normalized Data:", normalizedData, "SenaEmpresas:", senaEmpresas);
+  console.log('Tabla Props - Data:', data, 'Normalized Data:', normalizedData, 'SenaEmpresas:', senaEmpresas);
 
   const filteredItems = normalizedData.filter((item: any) =>
     searchableFields.some((field) => {
-      const value = item[field] || "";
+      const value = item[field] || '';
       return value.toString().toLowerCase().includes(filterValue.toLowerCase());
     })
   );
@@ -60,7 +60,7 @@ const Tabla: React.FC<TablaProps> = ({
   };
 
   const onClear = () => {
-    setFilterValue("");
+    setFilterValue('');
     setPage(1);
   };
 
@@ -77,7 +77,7 @@ const Tabla: React.FC<TablaProps> = ({
         <Input
           isClearable
           className="w-full sm:w-1/3"
-          placeholder="Buscar por nombre, apellido o identificación"
+          placeholder="Buscar por nombre, dirección o responsable"
           value={filterValue}
           onClear={onClear}
           onValueChange={onSearchChange}
@@ -86,22 +86,22 @@ const Tabla: React.FC<TablaProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-gray-600 dark:text-gray-400 text-sm">Filas por página:</span>
             <Select
-              defaultSelectedKeys={["5"]}
+              defaultSelectedKeys={['5']}
               className="w-20"
               size="sm"
               onChange={handleRowsPerPageChange}
               aria-label="filasSelector"
             >
-              <SelectItem key="5" value="5">5</SelectItem>
-              <SelectItem key="10" value="10">10</SelectItem>
-              <SelectItem key="15" value="15">15</SelectItem>
+              <SelectItem key="5">5</SelectItem>
+              <SelectItem key="10">10</SelectItem>
+              <SelectItem key="15">15</SelectItem>
             </Select>
           </div>
           {extraControls}
         </div>
       </div>
       <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <Table aria-label="Tabla de usuarios" className="w-full">
+        <Table aria-label="Tabla de sedes" className="w-full">
           <TableHeader>
             {columns.map((column) => (
               <TableColumn
@@ -116,13 +116,13 @@ const Tabla: React.FC<TablaProps> = ({
             {items.map((item, index) => (
               <TableRow
                 key={item.id || index}
-                className={index % 2 === 0 ? "bg-gray-50 dark:bg-gray-900" : "bg-white dark:bg-gray-800"}
+                className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}
               >
                 {columns.map((column) => (
                   <TableCell key={column.uid} className="text-center text-sm whitespace-nowrap">
                     {column.render
                       ? column.render(item[column.uid], item, senaEmpresas)
-                      : item[column.uid] ?? "N/A"}
+                      : item[column.uid] ?? 'N/A'}
                   </TableCell>
                 ))}
               </TableRow>
