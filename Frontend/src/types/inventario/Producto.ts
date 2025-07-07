@@ -19,6 +19,9 @@ export interface Producto {
   imagen_url?: string;
   unidad_medida_base: string;
   unidad_medida_display: string;
+  tiene_comision: boolean;
+  comision?: number;
+  unidad_comision_destino?: number;
 }
 
 export interface ProductoFormData {
@@ -37,4 +40,7 @@ export interface ProductoFormData {
   porcentaje_descuento?: string;
   imagen?: File | null;
   unidad_medida_base: string;
+  tiene_comision: boolean;
+  comision?: string;
+  unidad_comision_destino?: string;
 }
