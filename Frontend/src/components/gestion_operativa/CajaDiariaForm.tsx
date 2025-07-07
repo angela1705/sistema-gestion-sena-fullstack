@@ -1,8 +1,6 @@
-
-// src/components/gestion_operativa/caja_diaria/CajaDiariaForm.tsx
 import { Button, Input } from '@nextui-org/react';
 import { Select, SelectItem } from '@heroui/select';
-import { CajaDiariaFormData} from '../../types/gestion_operativa/caja_diaria';
+import { CajaDiariaFormData } from '../../types/gestion_operativa/caja_diaria';
 
 interface CajaDiariaFormProps {
   formData: CajaDiariaFormData;
@@ -25,6 +23,10 @@ export const CajaDiariaForm = ({
   optionsLoading,
   isRegister = false,
 }: CajaDiariaFormProps) => {
+  console.log('CajaDiariaForm - Unidades:', unidades);
+  console.log('CajaDiariaForm - FormData:', formData);
+  console.log('CajaDiariaForm - OptionsLoading:', optionsLoading);
+
   return (
     <div className="space-y-4">
       {error && (
@@ -38,17 +40,24 @@ export const CajaDiariaForm = ({
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">Unidad Productiva*</label>
             <Select
-              label="Unidad Productiva"
+              label="Seleccione una Unidad Productiva"
               selectedKeys={formData.unidadProductiva ? [formData.unidadProductiva] : []}
-              onChange={(e) => onChange('unidadProductiva', e.target.value)}
+              onChange={(e) => {
+                console.log('Select onChange - Value:', e.target.value);
+                onChange('unidadProductiva', e.target.value);
+              }}
               className="w-full"
               isRequired
               isLoading={optionsLoading}
-              isDisabled={optionsLoading || !unidades.length}
+              isDisabled={optionsLoading || unidades.length === 0}
+              placeholder="Elija una unidad productiva"
             >
-              {Array.isArray(unidades) && unidades.length > 0 ? (
+              {unidades.length > 0 ? (
                 unidades.map((unidad) => (
-                  <SelectItem key={unidad.id.toString()} textValue={unidad.nombre}>
+                  <SelectItem
+                    key={unidad.id.toString()}
+                    textValue={unidad.nombre}
+                  >
                     {unidad.nombre}
                   </SelectItem>
                 ))
@@ -58,15 +67,23 @@ export const CajaDiariaForm = ({
                 </SelectItem>
               )}
             </Select>
+            {unidades.length === 0 && !optionsLoading && (
+              <p className="text-red-500 text-sm mt-1">
+                No hay unidades productivas disponibles. Verifique la conexión con el servidor.
+              </p>
+            )}
           </div>
 
           <Input
             label="Saldo Inicial*"
-            value={formData.saldo_inicial || ''}
+            value={formData.saldo_inicial}
             onChange={(e) => onChange('saldo_inicial', e.target.value)}
             isRequired
             type="number"
+            step="0.01"
+            min="0"
             className="w-full"
+            placeholder="0.00"
           />
         </>
       )}
@@ -74,11 +91,14 @@ export const CajaDiariaForm = ({
       {!isRegister && (
         <Input
           label="Saldo Final*"
-          value={formData.saldo_final.toString() || ''}
+          value={formData.saldo_final}
           onChange={(e) => onChange('saldo_final', e.target.value)}
           isRequired
           type="number"
+          step="0.01"
+          min="0"
           className="w-full"
+          placeholder="0.00"
         />
       )}
 
@@ -87,6 +107,7 @@ export const CajaDiariaForm = ({
         value={formData.observaciones}
         onChange={(e) => onChange('observaciones', e.target.value)}
         className="w-full"
+        placeholder="Escriba observaciones (opcional)"
       />
 
       <div className="flex justify-end pt-4">

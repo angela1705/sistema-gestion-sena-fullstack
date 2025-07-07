@@ -1,5 +1,3 @@
-
-// src/hook/gestion_operativa/useRegistrarCaja.ts
 import { useState } from 'react';
 import { CajaDiariaFormData } from '../../types/gestion_operativa/caja_diaria';
 
@@ -12,6 +10,7 @@ export const useRegistrarCaja = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No estás autenticado');
+
       const response = await fetch('http://localhost:8000/api/cajaDiaria/', {
         method: 'POST',
         headers: {
@@ -19,22 +18,21 @@ export const useRegistrarCaja = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          unidadProductiva: parseInt(data.unidadProductiva || '0'),
-          saldo_inicial: parseFloat(data.saldo_inicial || '0'),
+          unidadProductiva: parseInt(data.unidadProductiva),
+          saldo_inicial: parseFloat(data.saldo_inicial),
           observaciones: data.observaciones || '',
         }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error al registrar caja: ${errorText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al registrar caja');
       }
 
-      const result = await response.json();
-      console.log('Registro exitoso:', result);
-      return result; // Devolver la respuesta para posibles usos futuros
+      return await response.json();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);

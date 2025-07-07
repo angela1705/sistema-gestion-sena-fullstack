@@ -1,16 +1,17 @@
-
-// src/hook/gestion_operativa/useCerrarCaja.ts
 import { useState } from 'react';
 import { CajaDiariaCierreData } from '../../types/gestion_operativa/caja_diaria';
 
-export const useCerrarCaja = (cajaId: number) => {
+export const useCerrarCaja = (cajaId: number | null) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const cerrarCaja = async (data: CajaDiariaCierreData) => {
+    if (!cajaId) throw new Error('No se especificó el ID de la caja');
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      if (!token) throw new Error('No estás autenticado');
+
       const response = await fetch(`http://localhost:8000/api/cajaDiaria/${cajaId}/cerrar_caja/`, {
         method: 'POST',
         headers: {
@@ -18,14 +19,20 @@ export const useCerrarCaja = (cajaId: number) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          saldo_final: parseFloat(data.saldo_final.toString()),
-          observaciones: data.observaciones,
+          saldo_final: parseFloat(data.saldo_final),
+          observaciones: data.observaciones || '',
         }),
       });
 
-      if (!response.ok) throw new Error('Error al cerrar caja');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || 'Error al cerrar caja');
+      }
+
+      return await response.json();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);

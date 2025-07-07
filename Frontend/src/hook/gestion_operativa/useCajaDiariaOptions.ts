@@ -1,5 +1,3 @@
-
-// src/hook/gestion_operativa/useCajaDiariaOptions.ts
 import { useState, useEffect } from 'react';
 
 export const useCajaDiariaOptions = () => {
@@ -9,20 +7,36 @@ export const useCajaDiariaOptions = () => {
 
   const fetchOptions = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/unidad-productiva/opciones/', {
+      if (!token) throw new Error('No estás autenticado. Por favor, inicia sesión.');
+
+      const response = await fetch('http://localhost:8000/api/unidad-productiva/', {
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
-      if (!response.ok) throw new Error('Error al obtener opciones');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error ${response.status}: No se pudieron obtener las unidades productivas`);
+      }
 
       const data = await response.json();
+      console.log('useCajaDiariaOptions - API Response:', data);
       const normalizedData = Array.isArray(data) ? data : data.results || [];
-      setUnidades(normalizedData);
+      const formattedUnits = normalizedData.map((item: any) => ({
+        id: item.id,
+        nombre: item.nombre || 'Sin nombre',
+      }));
+      setUnidades(formattedUnits);
+      console.log('useCajaDiariaOptions - Formatted Units:', formattedUnits);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al obtener unidades';
+      console.error('useCajaDiariaOptions - Error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
