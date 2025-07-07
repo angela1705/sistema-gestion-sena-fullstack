@@ -1,4 +1,3 @@
-// src/pages/Productos.tsx
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { FaPlus } from 'react-icons/fa';
@@ -64,6 +63,9 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
     precio_compra: '',
     tiene_descuento: false,
     porcentaje_descuento: '',
+    tiene_comision: false,
+    comision: '',
+    unidad_comision_destino: '',
     imagen: null,
     unidad_medida_base: 'unidad',
   });
@@ -90,6 +92,9 @@ export default function Productos({ isNavbarOpen }: { isNavbarOpen: boolean }) {
         precio_compra: '',
         tiene_descuento: false,
         porcentaje_descuento: '',
+        tiene_comision: false,
+        comision: '',
+        unidad_comision_destino: '',
         imagen: null,
         unidad_medida_base: 'unidad',
       });

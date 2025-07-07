@@ -1,5 +1,5 @@
 // src/hook/usuarios/useRegistrarCargo.ts
-import { useState } from "react";
+import { useState } from 'react';
 
 interface RegistrarCargoResponse {
   success: boolean;
@@ -8,7 +8,7 @@ interface RegistrarCargoResponse {
   registrarCargo: (nombre: string) => Promise<void>;
 }
 
-export const useRegistrarCargo = (url: string): RegistrarCargoResponse => {
+export const useRegistrarCargo = (): RegistrarCargoResponse => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,34 +18,34 @@ export const useRegistrarCargo = (url: string): RegistrarCargoResponse => {
     setError(null);
     setSuccess(false);
 
-    const token = localStorage.getItem("token");
-    console.log("Token al registrar cargo:", token);
+    const token = localStorage.getItem('token');
+    console.log('Token al registrar cargo:', token);
     if (!token) {
-      setError("Debes iniciar sesión para registrar un cargo.");
+      setError('Debes iniciar sesión para registrar un cargo.');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(url, {
-        method: "POST",
+      const response = await fetch('http://localhost:8000/api/cargo/', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ nombre }),
       });
 
-      console.log("Respuesta del servidor (cargo):", response.status, response.statusText);
+      console.log('Respuesta del servidor (cargo):', response.status, response.statusText);
 
       if (response.ok) {
         setSuccess(true);
       } else {
         const errorData = await response.json();
-        setError(errorData[Object.keys(errorData)[0]] || "No se pudo registrar el cargo.");
+        setError(errorData[Object.keys(errorData)[0]] || 'No se pudo registrar el cargo.');
       }
     } catch (err) {
-      setError("Error al conectar con el servidor.");
+      setError('Error al conectar con el servidor.');
     } finally {
       setLoading(false);
     }

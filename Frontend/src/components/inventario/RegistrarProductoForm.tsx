@@ -48,7 +48,6 @@ export const RegistrarProductoForm = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Columna izquierda */}
         <Input
           label="Nombre*"
           value={formData.nombre}
@@ -57,7 +56,6 @@ export const RegistrarProductoForm = ({
           className="w-full"
         />
 
-        {/* Columna derecha */}
         <Input
           label="Descripción*"
           value={formData.descripcion}
@@ -216,6 +214,54 @@ export const RegistrarProductoForm = ({
           />
         )}
 
+        <Switch
+          isSelected={formData.tiene_comision}
+          onValueChange={(value) => onChange('tiene_comision', value)}
+          className="w-full"
+        >
+          Aplicar comisión
+        </Switch>
+
+        {formData.tiene_comision && (
+          <>
+            <Input
+              label="Porcentaje Comisión*"
+              type="number"
+              value={formData.comision?.toString() || ''}
+              onChange={(e) => onChange('comision', e.target.value)}
+              isRequired
+              className="w-full"
+              min="0"
+              max="100"
+              step="0.01"
+            />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Unidad Productiva Destino Comisión*</label>
+              <Select
+                label="Unidad Productiva Destino"
+                selectedKeys={formData.unidad_comision_destino ? [formData.unidad_comision_destino] : []}
+                onChange={(e) => onChange('unidad_comision_destino', e.target.value)}
+                className="w-full"
+                isRequired
+                isLoading={optionsLoading}
+                isDisabled={optionsLoading || !unidades.length}
+              >
+                {unidades.length > 0 ? (
+                  unidades.map((unidad) => (
+                    <SelectItem key={unidad.id.toString()} textValue={unidad.nombre}>
+                      {unidad.nombre}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem key="no-unidades" textValue="No hay unidades disponibles" isDisabled>
+                    No hay unidades disponibles
+                  </SelectItem>
+                )}
+              </Select>
+            </div>
+          </>
+        )}
+
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">Unidad de Medida*</label>
           <Select
@@ -238,7 +284,6 @@ export const RegistrarProductoForm = ({
           <input type="file" accept="image/*" onChange={handleFileChange} className="w-full" />
         </div>
 
-        {/* Botón abarca ambas columnas */}
         <div className="col-span-1 md:col-span-2 flex justify-end pt-4">
           <Button
             color="primary"
@@ -252,9 +297,10 @@ export const RegistrarProductoForm = ({
               !formData.unidadP ||
               !formData.estado ||
               !formData.precio_compra ||
-              (formData.stock && formData.stock_actual == null) || // Validar stock_actual si stock es true
-              (formData.reservas && (!formData.hora_limite_reserva || formData.max_reservas == null)) || // Validar reservas
-              (formData.tiene_descuento && !formData.porcentaje_descuento)
+              (formData.stock && formData.stock_actual == null) ||
+              (formData.reservas && (!formData.hora_limite_reserva || formData.max_reservas == null)) ||
+              (formData.tiene_descuento && !formData.porcentaje_descuento) ||
+              (formData.tiene_comision && (!formData.comision || !formData.unidad_comision_destino))
             }
             className="w-full md:w-auto"
           >
