@@ -1,4 +1,4 @@
-// hook/gestion_operativa/useReserva.ts
+// hook/gestion_operativa/useReserva.tsx
 import { useState, useEffect } from 'react';
 import { Reserva } from '../../types/gestion_operativa/reserva';
 
@@ -37,12 +37,13 @@ export const useReserva = (apiUrl: string = 'http://localhost:8000/api/reservas/
       }
 
       const data = await response.json();
-      console.log('Datos de la API (reservas) - Conteo:', data.length); // Solo conteo para depuración
+      console.log('useReserva - API Response:', JSON.stringify(data, null, 2));
       const reservasData = Array.isArray(data) ? data : (data.results || []);
       setReservas(reservasData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido al cargar las reservas.');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar las reservas.';
+      setError(errorMessage);
       console.error('Error fetching reservas:', err);
     } finally {
       setLoading(false);
@@ -51,8 +52,7 @@ export const useReserva = (apiUrl: string = 'http://localhost:8000/api/reservas/
 
   useEffect(() => {
     fetchReservas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiUrl]); // Solo se ejecuta al montar o cambiar apiUrl
+  }, [apiUrl]);
 
   const refetch = () => {
     setLoading(true);

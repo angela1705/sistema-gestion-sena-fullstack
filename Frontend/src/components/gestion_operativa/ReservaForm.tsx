@@ -1,90 +1,140 @@
-import React from 'react';
-import { Button, Input, Select, SelectItem } from '@nextui-org/react';
+// components/gestion_operativa/ReservaForm.tsx
+import { Button, Input } from '@nextui-org/react';
+import { Select, SelectItem } from '@heroui/select';
 import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
+import { PersonaOption, ProductoOption } from '../../hook/gestion_operativa/useReservaOptions';
 
 interface ReservaFormProps {
   formData: ReservaCreateData;
-  personas: { id: number; first_name: string }[];
-  productos: { id: number; nombre: string }[];
-  onChange: (field: keyof ReservaCreateData, value: number | undefined) => void;
+  personas: PersonaOption[];
+  productos: ProductoOption[];
+  onChange: (field: keyof ReservaCreateData, value: string | number | undefined) => void;
   onSubmit: () => void;
   loading: boolean;
-  error?: string | null;
-  personasLoading: boolean;
-  productosLoading: boolean;
-  selectedReservaId?: number | null;
+  error: string | null;
+  optionsLoading: boolean;
+  isRegister?: boolean;
 }
 
-const ReservaForm: React.FC<ReservaFormProps> = ({
+export const ReservaForm = ({
   formData,
-  personas,
-  productos,
+  personas = [],
+  productos = [],
   onChange,
   onSubmit,
   loading,
   error,
-  personasLoading,
-  productosLoading,
-  selectedReservaId,
-}) => {
-  const isCancelMode = selectedReservaId !== null && selectedReservaId !== undefined;
+  optionsLoading,
+  isRegister = true,
+}: ReservaFormProps) => {
+  console.log('ReservaForm - Personas:', personas);
+  console.log('ReservaForm - Productos:', productos);
+  console.log('ReservaForm - FormData:', formData);
+  console.log('ReservaForm - OptionsLoading:', optionsLoading);
+  console.log('ReservaForm - Error:', error);
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-4">
-      {error && <p className="text-red-500">{error}</p>}
-      {!isCancelMode && ( // Solo muestra campos si no es modo cancelar
-        <>
-          <Select
-            label="Persona"
-            placeholder="Selecciona una persona"
-            selectedKeys={formData.persona ? [formData.persona.toString()] : []}
-            onChange={(e) => onChange('persona', parseInt(e.target.value) || undefined)}
-            isLoading={personasLoading}
-            isDisabled={loading}
-          >
-            {personas.map((persona) => (
-              <SelectItem key={persona.id.toString()} value={persona.id}>
-                {persona.first_name}
-              </SelectItem>
-            ))}
-          </Select>
+    <div className="space-y-4">
+      {error && (
+        <div className="text-red-500 p-2 rounded bg-red-50 mb-4">
+          {error}
+        </div>
+      )}
 
-          <Select
-            label="Producto"
-            placeholder="Selecciona un producto"
-            selectedKeys={formData.producto ? [formData.producto.toString()] : []}
-            onChange={(e) => onChange('producto', parseInt(e.target.value) || undefined)}
-            isLoading={productosLoading}
-            isDisabled={loading}
-          >
-            {productos.map((producto) => (
-              <SelectItem key={producto.id.toString()} value={producto.id}>
-                {producto.nombre}
-              </SelectItem>
-            ))}
-          </Select>
+      {isRegister && (
+        <>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Persona*</label>
+            <Select
+              label="Seleccione una Persona"
+              selectedKeys={formData.persona ? [formData.persona.toString()] : []}
+              onChange={(e) => {
+                console.log('Select Persona onChange - Value:', e.target.value);
+                onChange('persona', e.target.value ? parseInt(e.target.value) : undefined);
+              }}
+              className="w-full"
+              isRequired
+              isLoading={optionsLoading}
+              isDisabled={optionsLoading || personas.length === 0}
+              placeholder={personas.length === 0 ? 'No hay personas disponibles' : 'Elija una persona'}
+            >
+              {personas.length > 0 ? (
+                personas.map((persona) => (
+                  <SelectItem key={persona.id.toString()} textValue={persona.first_name}>
+                    {persona.first_name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem key="no-personas" textValue="No hay personas disponibles" isDisabled>
+                  No hay personas disponibles
+                </SelectItem>
+              )}
+            </Select>
+            {personas.length === 0 && !optionsLoading && (
+              <p className="text-red-500 text-sm mt-1">
+                No hay personas disponibles. Verifique la conexión con el servidor o añada personas en el sistema.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Producto*</label>
+            <Select
+              label="Seleccione un Producto"
+              selectedKeys={formData.producto ? [formData.producto.toString()] : []}
+              onChange={(e) => {
+                console.log('Select Producto onChange - Value:', e.target.value);
+                onChange('producto', e.target.value ? parseInt(e.target.value) : undefined);
+              }}
+              className="w-full"
+              isRequired
+              isLoading={optionsLoading}
+              isDisabled={optionsLoading || productos.length === 0}
+              placeholder={productos.length === 0 ? 'No hay productos disponibles' : 'Elija un producto'}
+            >
+              {productos.length > 0 ? (
+                productos.map((producto) => (
+                  <SelectItem key={producto.id.toString()} textValue={producto.nombre}>
+                    {producto.nombre}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem key="no-productos" textValue="No hay productos disponibles" isDisabled>
+                  No hay productos disponibles
+                </SelectItem>
+              )}
+            </Select>
+            {productos.length === 0 && !optionsLoading && (
+              <p className="text-red-500 text-sm mt-1">
+                No hay productos disponibles. Verifique la conexión con el servidor o añada productos en el sistema.
+              </p>
+            )}
+          </div>
 
           <Input
-            type="number"
-            label="Cantidad"
+            label="Cantidad*"
             value={formData.cantidad?.toString() || ''}
-            onChange={(e) => onChange('cantidad', parseInt(e.target.value) || undefined)}
-            isDisabled={loading}
-            min={1}
+            onChange={(e) => onChange('cantidad', e.target.value ? parseInt(e.target.value) : undefined)}
+            isRequired
+            type="number"
+            min="1"
+            className="w-full"
+            placeholder="1"
           />
         </>
       )}
 
-      <Button
-        color="primary"
-        onPress={onSubmit}
-        isLoading={loading}
-        disabled={!formData.persona || !formData.producto || !formData.cantidad || formData.cantidad <= 0}
-      >
-        Registrar Reserva
-      </Button>
-    </form>
+      <div className="flex justify-end pt-4">
+        <Button
+          color="primary"
+          onPress={onSubmit}
+          isLoading={loading}
+          isDisabled={loading || !formData.persona || !formData.producto || !formData.cantidad || formData.cantidad <= 0}
+          className="w-full md:w-auto"
+        >
+          {loading ? 'Registrando...' : 'Registrar Reserva'}
+        </Button>
+      </div>
+    </div>
   );
 };
-
-export default ReservaForm; // Exportación por defecto

@@ -1,58 +1,130 @@
+// pages/Reserva.tsx
 import { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
+import { FaPlus } from 'react-icons/fa';
 import { useReserva } from '../../hook/gestion_operativa/useReserva';
-import { useEliminarReserva } from '../../hook/gestion_operativa/useEliminarReserva';
+import { useRegistrarReserva } from '../../hook/gestion_operativa/useRegistrarReserva';
+import { useCancelarReserva } from '../../hook/gestion_operativa/useCancelarReserva';
+import { useReservaOptions, PersonaOption, ProductoOption } from '../../hook/gestion_operativa/useReservaOptions';
+import { ReservaForm } from '../../components/gestion_operativa/ReservaForm';
+import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
 import Tabla from '../../components/global/Tabla';
+import { type Reserva, ReservaCreateData } from '../../types/gestion_operativa/reserva';
+import { ReactNode } from 'react';
 
-const columns = [
-  { uid: 'fecha_creacion', name: 'Fecha Creación' },
-  { uid: 'persona_info', name: 'Persona', render: (data: any) => data?.first_name || 'Sin nombre' },
-  { uid: 'producto_info', name: 'Producto', render: (data: any) => data?.nombre || 'Sin producto' },
-  { uid: 'cantidad', name: 'Cantidad' },
-  { uid: 'total', name: 'Total' },
-  { uid: 'estado_display', name: 'Estado' },
-  {
-    uid: 'acciones',
-    name: 'Acciones',
-    render: (_data: any, row: any, context: { eliminarReserva: (id: number) => Promise<void>; refetch: () => Promise<void> }) => {
-      if (!row || typeof row.estado === 'undefined' || !row.id || typeof row.id !== 'number') return null;
-      return (
-        <Button color="danger" onPress={() => handleDelete(row.id, context.eliminarReserva, context.refetch)}>Cancelar</Button>
-      );
-    },
-  },
-];
+// Definimos SedeOption para coincidir con Tabla.tsx
+interface SedeOption {
+  id: number;
+  nombre_display: string;
+}
 
-const searchableFields = ['persona_info.first_name', 'producto_info.nombre'];
+interface Column {
+  uid: string;
+  name: string;
+  render?: (data: any, row: Reserva, options: SedeOption[]) => ReactNode;
+}
 
 export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
-  const { reservas, loading: reservasLoading, error: reservasError, refetch } = useReserva('http://localhost:8000/api/reservas/');
-  const { eliminarReserva, loading: deleteLoading, error: deleteError } = useEliminarReserva();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReservaId, setSelectedReservaId] = useState<number | null>(null);
+  const { reservas, loading: reservasLoading, error: reservasError, refetch } = useReserva();
+  const { registrarReserva, loading: registerLoading, error: registerError } = useRegistrarReserva();
+  const { cancelarReserva, loading: cancelLoading, error: cancelError } = useCancelarReserva();
+  const { personas, productos, loading: optionsLoading, error: optionsError } = useReservaOptions();
 
-  // Logs minimizados
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Reservas cargadas: Conteo', reservas?.length || 0);
-    console.log('eliminarReserva en Reserva:', typeof eliminarReserva === 'function' ? 'función' : eliminarReserva);
-  }
+  // Usamos ProductoOption explícitamente para evitar la advertencia
+  const productosTyped: ProductoOption[] = productos;
 
-  const handleDelete = async (reservaId: number, eliminarReserva: (id: number) => Promise<void>, refetch: () => Promise<void>) => {
-    if (typeof eliminarReserva !== 'function') {
-      console.error('eliminarReserva no es una función en handleDelete:', eliminarReserva);
-      return;
-    }
+  const [formData, setFormData] = useState<ReservaCreateData>({
+    producto: 0,
+    cantidad: 0,
+  });
+
+  const handleChange = (field: keyof ReservaCreateData, value: string | number | undefined) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
     try {
-      console.log('Intentando eliminar reserva con ID:', reservaId);
-      await eliminarReserva(reservaId);
+      if (!isModalOpen) return;
+      await registrarReserva(formData);
+      setIsModalOpen(false);
+      setFormData({
+        producto: 0,
+        cantidad: 0,
+      });
+      setSelectedReservaId(null);
       await refetch();
-      console.log('Reserva eliminada y lista refetcheada');
     } catch (err) {
-      console.error('Error al eliminar reserva:', err);
+      console.error('Error al procesar reserva:', err);
     }
   };
 
-  if (!reservas && !reservasLoading && !reservasError) {
-    return <p className="text-red-500 text-center">Error: No se pudieron cargar las reservas.</p>;
-  }
+  const handleOpenModal = (reservaId: number | null) => {
+    setSelectedReservaId(reservaId);
+    setIsModalOpen(true);
+    const initialFormData: ReservaCreateData = {
+      producto: productosTyped.length === 1 ? productosTyped[0].id : 0,
+      cantidad: 1,
+      persona: personas.length === 1 ? personas[0].id : undefined,
+    };
+    setFormData(initialFormData);
+  };
+
+  const handleCancel = async (reservaId: number) => {
+    try {
+      await cancelarReserva(reservaId);
+      await refetch();
+    } catch (err) {
+      console.error('Error al cancelar reserva:', err);
+    }
+  };
+
+  const columns: Column[] = [
+    { uid: 'fecha_creacion', name: 'Fecha Creación' },
+    {
+      uid: 'persona_info.first_name',
+      name: 'Persona',
+      render: (_data, row: Reserva, _options: SedeOption[]) => row.persona_info?.first_name || 'N/A',
+    },
+    {
+      uid: 'producto_info.nombre',
+      name: 'Producto',
+      render: (_data, row: Reserva, _options: SedeOption[]) => row.producto_info?.nombre || 'N/A',
+    },
+    { uid: 'cantidad', name: 'Cantidad' },
+    { uid: 'total', name: 'Total' },
+    {
+      uid: 'estado_display',
+      name: 'Estado',
+      render: (_data, row: Reserva, _options: SedeOption[]) => row.estado_display || 'N/A',
+    },
+    {
+      uid: 'acciones',
+      name: 'Acciones',
+      render: (_data, row: Reserva, _options: SedeOption[]) =>
+        row.estado === 'pendiente' ? (
+          <Button
+            color="danger"
+            onPress={() => handleCancel(row.id)}
+            isLoading={cancelLoading}
+            disabled={cancelLoading}
+          >
+            Cancelar
+          </Button>
+        ) : null,
+    },
+  ];
+
+  const searchableFields = ['persona_info.first_name', 'producto_info.nombre', 'estado_display'];
+
+  // Logs de depuración
+  console.log('Reserva - Personas:', personas);
+  console.log('Reserva - Productos:', productosTyped);
+  console.log('Reserva - OptionsLoading:', optionsLoading);
+  console.log('Reserva - OptionsError:', optionsError);
+  console.log('Reserva - Reservas:', reservas);
+  console.log('Reserva - CancelError:', cancelError);
 
   return (
     <div
@@ -62,23 +134,54 @@ export default function Reserva({ isNavbarOpen }: { isNavbarOpen: boolean }) {
     >
       <Card className="w-full max-w-5xl">
         <CardBody className="flex flex-col p-6">
-          <div className="flex flex-col sm:flex-col justify-start mb-4 gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Listado de Reservas</h1>
+          <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Lista de Reservas</h1>
+            <Button
+              onPress={() => handleOpenModal(null)}
+              color="primary"
+              startContent={<FaPlus />}
+              isDisabled={optionsLoading || personas.length === 0 || productosTyped.length === 0}
+            >
+              Registrar
+            </Button>
           </div>
 
-          {reservasLoading && <p className="text-gray-500">Cargando reservas...</p>}
-          {reservasError && <p className="text-red-500 mb-4">Error al cargar reservas: {reservasError}</p>}
-          {deleteError && <p className="text-red-500 mb-4">Error al eliminar reserva: {deleteError}</p>}
-          {reservas?.length === 0 && !reservasLoading && !reservasError && (
+          {(reservasLoading || optionsLoading || cancelLoading) && (
+            <p className="text-gray-500">Cargando datos...</p>
+          )}
+          {(reservasError || optionsError || cancelError) && (
+            <p className="text-red-500 mb-4">{reservasError || optionsError || cancelError}</p>
+          )}
+          {reservas && reservas.length === 0 && !reservasLoading && !reservasError && (
             <p className="text-gray-500 mb-4">No hay reservas para mostrar.</p>
           )}
           <Tabla
             columns={columns}
             data={reservas || []}
             searchableFields={searchableFields}
-            eliminarReserva={eliminarReserva}
-            refetch={refetch}
+            senaEmpresas={personas.map((p: PersonaOption) => ({
+              id: p.id,
+              nombre_display: p.first_name,
+            }))}
           />
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            <ModalContent>
+              <ModalHeader>Registrar Nueva Reserva</ModalHeader>
+              <ModalBody>
+                <ReservaForm
+                  formData={formData}
+                  personas={personas}
+                  productos={productosTyped}
+                  onChange={handleChange}
+                  onSubmit={handleSubmit}
+                  loading={registerLoading}
+                  error={registerError || optionsError}
+                  optionsLoading={optionsLoading}
+                  isRegister={selectedReservaId === null}
+                />
+              </ModalBody>
+            </ModalContent>
+          </Modal>
         </CardBody>
       </Card>
     </div>

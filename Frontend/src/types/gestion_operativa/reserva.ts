@@ -2,14 +2,14 @@
 export interface Persona {
   id: number;
   first_name: string;
-  numFicha?: string; // Opcional según el modelo
+  numFicha?: string;
 }
 
 export interface Producto {
   id: number;
   nombre: string;
   activo: boolean;
-  unidadP?: number; // Relación con UnidadProductiva
+  unidadP?: number;
 }
 
 export interface Transaccion {
@@ -22,9 +22,9 @@ export interface Reserva {
   persona_info: Persona;
   producto: number;
   producto_info: Producto;
-  precio_unitario: string; // Decimal como string desde la API
+  precio_unitario: string;
   cantidad: number;
-  total: string; // Decimal como string desde la API
+  total: string;
   fecha_creacion: string;
   fecha_actualizacion: string;
   estado: 'pendiente' | 'pagada' | 'cancelada' | 'entregada';
@@ -37,5 +37,5 @@ export interface ReservaCreateData {
   persona?: number;
   producto: number;
   cantidad: number;
-  estado?: 'pendiente'; // Solo pendiente al crear
+  estado?: 'pendiente';
 }

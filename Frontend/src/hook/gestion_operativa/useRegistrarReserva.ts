@@ -1,4 +1,4 @@
-// hook/gestion_operativa/useRegistrarReserva.ts
+// hook/gestion_operativa/useRegistrarReserva.tsx
 import { useState } from 'react';
 import { ReservaCreateData } from '../../types/gestion_operativa/reserva';
 
@@ -19,19 +19,32 @@ export const useRegistrarReserva = (): UseRegistrarReservaResponse => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No estás autenticado.');
 
+      const payload: any = {
+        producto: data.producto,
+        cantidad: data.cantidad,
+      };
+      if (data.persona) {
+        payload.persona = data.persona;
+      }
+
       const response = await fetch('http://localhost:8000/api/reservas/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error('Error al registrar la reserva');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al registrar la reserva');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
       console.error('Error al registrar reserva:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
