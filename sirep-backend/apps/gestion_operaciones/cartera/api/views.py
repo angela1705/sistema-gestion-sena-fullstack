@@ -170,3 +170,31 @@ class DetalleCarteraViewSet(viewsets.ModelViewSet):
         serializer = ResumenDeudasSerializer(resumen, many=True)
         return Response(serializer.data)
     
+    @action(detail=False, methods=['get'])
+    def resumen_personas_por_unidad(self, request):
+        """
+        Devuelve el resumen de deudas por persona para una unidad productiva específica.
+        """
+        unidad_id = request.query_params.get('unidad_productiva_id')
+        if not unidad_id:
+            return Response({"error": "Se requiere el parámetro unidad_productiva_id"}, status=400)
+
+        queryset = self.get_queryset().filter(unidad_productiva_id=unidad_id)
+
+        resumen = queryset.values(
+            'persona',
+            'persona__first_name',
+            'persona__last_name',
+            'unidad_productiva',
+            'unidad_productiva__nombre'
+        ).annotate(
+            total_deuda=ExpressionWrapper(F('valor_total') - F('abono_inicial') - Coalesce(Sum('abonos__valor'), 0),output_field=DecimalField(max_digits=10, decimal_places=2)),
+            total_fiado=Sum('valor_total'),
+            total_abonado=ExpressionWrapper(F('abono_inicial') + Coalesce(Sum('abonos__valor'), 0),output_field=DecimalField(max_digits=10, decimal_places=2)),
+            cantidad_fiados=Count('id')
+        ).order_by('persona__first_name', 'persona__last_name')
+
+        serializer = ResumenDeudasSerializer(resumen, many=True)
+        return Response(serializer.data)
+
+    
