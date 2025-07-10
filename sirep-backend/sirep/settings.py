@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'apps.usuarios.persona',
     'apps.usuarios.rol',
     'channels',
+    'apps.gestion_operaciones.cartera',
 ]
 #ASGI_APPLICATION = 'sirep.asgi.application'
 
