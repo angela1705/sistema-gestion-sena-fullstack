@@ -141,7 +141,7 @@ class DetalleCarteraViewSet(viewsets.ModelViewSet):
     
         # Calcular saldo pendiente
         total_abonado = detalle.abonos.aggregate(total=Sum('valor'))['total'] or 0
-        saldo_pendiente = float(detalle.saldo) - total_abonado
+        saldo_pendiente = detalle.saldo - Decimal(total_abonado)
     
         if serializer.validated_data['valor'] > saldo_pendiente:
             return Response(
@@ -149,7 +149,7 @@ class DetalleCarteraViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
         )
 
-        serializer.save(usuario=request.user)
+        serializer.save(usuario=request.user, detalle_cartera=detalle)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=False, methods=['get'])
