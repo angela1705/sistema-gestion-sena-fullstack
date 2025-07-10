@@ -28,6 +28,7 @@ from apps.gestion_operaciones.reservas.api.router import routerReserva
 from apps.gestion_operaciones.transaccion.api.router import routerTransaccion
 from apps.gestion_operaciones.caja_diaria.api.router import routerCajaDiaria
 from apps.gestion_operaciones.detalle_caja.api.router import routerDetalleCaja
+from apps.gestion_operaciones.cartera.api.router import routerCartera
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -46,6 +47,7 @@ urlpatterns = [
     path('api/', include(routerTransaccion.urls)),
     path('api/', include(routerCajaDiaria.urls)),
     path('api/', include(routerDetalleCaja.urls)),
+    path('api/', include(routerCartera.urls)),
 ]
 
 # Sirve archivos estáticos y medios en desarrollo
