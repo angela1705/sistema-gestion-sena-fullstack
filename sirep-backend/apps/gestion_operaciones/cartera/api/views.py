@@ -16,6 +16,7 @@ from .permissions import EsLiderOAdministrador
 from decimal import Decimal
 from django.db.models import F, ExpressionWrapper, DecimalField
 from django.db.models.functions import Coalesce
+from django.db import transaction
 
 class DetalleCarteraViewSet(viewsets.ModelViewSet):
     """
@@ -150,6 +151,7 @@ class DetalleCarteraViewSet(viewsets.ModelViewSet):
         )
 
         serializer.save(usuario=request.user, detalle_cartera=detalle)
+        detalle.recalcular_saldo()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=False, methods=['get'])
@@ -196,5 +198,68 @@ class DetalleCarteraViewSet(viewsets.ModelViewSet):
 
         serializer = ResumenDeudasSerializer(resumen, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def abonar_multiples(self, request):
+        """
+        Aplica un abono general a las deudas más antiguas de una persona
+        en una unidad productiva.
+        """
+        persona_id = request.data.get('persona_id')
+        unidad_id = request.data.get('unidad_productiva_id')
+        valor = request.data.get('valor')
+
+        if not all([persona_id, unidad_id, valor]):
+            return Response({"error": "persona_id, unidad_productiva_id y valor son requeridos."},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            valor = Decimal(valor)
+            if valor <= 0:
+                raise ValueError()
+        except:
+            return Response({"error": "El valor del abono debe ser un número positivo."},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+        detalles = DetalleCartera.objects.filter(persona_id=persona_id,unidad_productiva_id=unidad_id
+                ).annotate(total_abonado=Coalesce(Sum('abonos__valor', output_field=DecimalField(max_digits=10, decimal_places=2)),Decimal(0)),
+                        saldo_pendiente=ExpressionWrapper(F('saldo') - F('total_abonado'),output_field=DecimalField(max_digits=10, decimal_places=2))
+                        ).filter(saldo_pendiente__gt=0).order_by('fecha')
+
+        if not detalles.exists():
+            return Response({"error": "No hay deudas activas para esta persona en esta unidad productiva."},
+                        status=status.HTTP_404_NOT_FOUND)
+
+        abonos_realizados = []
+
+        with transaction.atomic():
+            for detalle in detalles:
+                total_abonado = detalle.abonos.aggregate(total=Sum('valor'))['total'] or 0
+                saldo_pendiente = detalle.saldo - Decimal(total_abonado)
+            
+                if saldo_pendiente <= 0:
+                    continue
+
+                abono_a_aplicar = min(saldo_pendiente, valor)
+
+                abono = AbonoCartera.objects.create(
+                    detalle_cartera=detalle,
+                    valor=abono_a_aplicar,
+                    usuario=request.user,
+                    observaciones="Abono automático por lote")
+
+                abonos_realizados.append({
+                    "detalle_id": detalle.id,
+                    "producto": detalle.producto.nombre,
+                    "valor_abonado": str(abono.valor),
+                    "saldo_restante": str(detalle.saldo - (total_abonado + abono.valor))})
+
+                detalle.recalcular_saldo()
+
+                valor -= abono_a_aplicar
+                if valor <= 0:
+                    break
+
+        return Response({"mensaje": f"Se aplicaron {len(abonos_realizados)} abonos.","abonos": abonos_realizados}, status=status.HTTP_201_CREATED)
 
     
