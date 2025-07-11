@@ -14,9 +14,10 @@ from .serializer import (
 from apps.entidades.unidades_productivas.models import UnidadProductiva
 from .permissions import EsLiderOAdministrador
 from decimal import Decimal
-from django.db.models import F, ExpressionWrapper, DecimalField
+from django.db.models import F, ExpressionWrapper, DecimalField, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 from django.db import transaction
+from collections import defaultdict
 
 class DetalleCarteraViewSet(viewsets.ModelViewSet):
     """
@@ -174,30 +175,37 @@ class DetalleCarteraViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def resumen_personas_por_unidad(self, request):
-        """
-        Devuelve el resumen de deudas por persona para una unidad productiva específica.
-        """
         unidad_id = request.query_params.get('unidad_productiva_id')
         if not unidad_id:
             return Response({"error": "Se requiere el parámetro unidad_productiva_id"}, status=400)
 
-        queryset = self.get_queryset().filter(unidad_productiva_id=unidad_id)
+        queryset = DetalleCartera.objects.filter(unidad_productiva_id=unidad_id
+        ).select_related('persona__cargo', 'unidad_productiva', 'producto'
+        ).prefetch_related('abonos')
 
-        resumen = queryset.values(
-            'persona',
-            'persona__first_name',
-            'persona__last_name',
-            'unidad_productiva',
-            'unidad_productiva__nombre'
-        ).annotate(
-            total_deuda=ExpressionWrapper(F('valor_total') - F('abono_inicial') - Coalesce(Sum('abonos__valor'), 0),output_field=DecimalField(max_digits=10, decimal_places=2)),
-            total_fiado=Sum('valor_total'),
-            total_abonado=ExpressionWrapper(F('abono_inicial') + Coalesce(Sum('abonos__valor'), 0),output_field=DecimalField(max_digits=10, decimal_places=2)),
-            cantidad_fiados=Count('id')
-        ).order_by('persona__first_name', 'persona__last_name')
+        # Agrupar por persona
+        resumen = defaultdict(lambda: {
+            "persona_id": None,
+            "persona__identificacion": "",
+            "persona__first_name": "",
+            "persona__last_name": "",
+            "persona__cargo__nombre": "",
+            "total_deuda": Decimal('0.00')})
 
-        serializer = ResumenDeudasSerializer(resumen, many=True)
-        return Response(serializer.data)
+        for detalle in queryset:
+            persona = detalle.persona
+            total_abonado = sum((abono.valor for abono in detalle.abonos.all()), Decimal('0.00'))
+            pendiente = max(Decimal('0.00'), detalle.saldo - total_abonado)
+
+            datos = resumen[persona.id]
+            datos["persona_id"] = persona.id
+            datos["persona__identificacion"] = persona.identificacion
+            datos["persona__first_name"] = persona.first_name
+            datos["persona__last_name"] = persona.last_name
+            datos["persona__cargo__nombre"] = persona.cargo.nombre if persona.cargo else ""
+            datos["total_deuda"] += pendiente
+
+        return Response(list(resumen.values()), status=200)
     
     @action(detail=False, methods=['post'])
     def abonar_multiples(self, request):
