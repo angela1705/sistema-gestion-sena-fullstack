@@ -1,11 +1,13 @@
 from django.db import models
 from django.utils import timezone
+from django.db.models import Sum
 from decimal import Decimal
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from apps.usuarios.persona.models import Persona
 from apps.inventario.productos.models import Producto
 from apps.entidades.unidades_productivas.models import UnidadProductiva
+
 
 class DetalleCartera(models.Model):
     persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name='fiados')
@@ -47,7 +49,13 @@ class DetalleCartera(models.Model):
         self.precio_unitario = self.producto.get_precio_para_persona(self.persona)
         self.valor_total = Decimal(self.cantidad) * self.precio_unitario
         self.saldo = self.valor_total - Decimal(self.abono_inicial)
-    
+
+    def recalcular_saldo(self):
+        """Recalcula el saldo en base a abonos + abono inicial"""
+        total_abonos = self.abonos.aggregate(total=models.Sum('valor'))['total'] or Decimal('0.00')
+        self.saldo = self.valor_total - (self.abono_inicial + total_abonos)
+        self.save(update_fields=['saldo'])
+
     def save(self, *args, **kwargs):
         self.calcular_valores()
         self.full_clean()
