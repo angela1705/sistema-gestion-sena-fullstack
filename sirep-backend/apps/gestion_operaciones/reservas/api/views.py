@@ -13,6 +13,8 @@ from apps.gestion_operaciones.transaccion.models import Transaccion
 from apps.usuarios.persona.models import Persona
 from apps.gestion_operaciones.detalle_caja.models import Tipo as TipoCaja
 from apps.inventario.productos.models import Producto
+from apps.gestion_operaciones.cartera.models import DetalleCartera
+from decimal import Decimal
 
 class ReservaViewSet(viewsets.ModelViewSet):
     queryset = Reserva.objects.all()
@@ -209,3 +211,47 @@ class ReservaViewSet(viewsets.ModelViewSet):
             'reservas_creadas': reservas_creadas,
             'errores': errores
         }, status=status_code)
+    
+
+    @action(detail=True, methods=['post'])
+    def marcar_como_fiado(self, request, pk=None):
+        """Solo el líder de la unidad productiva puede marcar la reserva como fiada"""
+        reserva = self.get_object()
+        user = request.user
+
+        # Validar rol
+        if not hasattr(user, 'rol') or user.rol.nombre != 'liderup':
+            return Response(
+                {'error': 'Solo el líder de la unidad productiva puede marcar como fiado esta reserva.'},
+                status=status.HTTP_403_FORBIDDEN)
+
+        if reserva.estado != 'pendiente':
+            return Response({'error': 'Solo se pueden fiar reservas pendientes'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Evitar múltiples registros
+        ya_fiado = DetalleCartera.objects.filter(
+            persona=reserva.persona,
+            producto=reserva.producto,
+            unidad_productiva=reserva.producto.unidadP,
+            cantidad=reserva.cantidad,
+            fecha__date=reserva.fecha_creacion.date()
+        ).exists()
+    
+        if ya_fiado:
+            return Response({'error': 'Esta reserva ya ha sido registrada como fiado anteriormente.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Crear el detalle de cartera (fiado)
+        DetalleCartera.objects.create(
+            persona=reserva.persona,
+            producto=reserva.producto,
+            unidad_productiva=reserva.producto.unidadP,
+            cantidad=reserva.cantidad,
+            abono_inicial=Decimal('0.00'),
+            observaciones=f'Fiado generado a partir de la reserva #{reserva.id}')
+
+        reserva.estado = 'fiado'
+        reserva.save(update_fields=['estado'])
+
+        return Response({'status': 'Reserva marcada como fiado y detalle de cartera creado',
+        'nuevo_estado': reserva.get_estado_display()
+    }, status=status.HTTP_200_OK)

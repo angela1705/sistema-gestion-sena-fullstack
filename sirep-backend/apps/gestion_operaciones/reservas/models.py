@@ -11,6 +11,7 @@ class Reserva(models.Model):
         ('pagada', 'Pagada'),
         ('cancelada', 'Cancelada'),
         ('entregada', 'Entregada'),
+        ('fiado', 'Fiado'),
     ]
 
     persona = models.ForeignKey(Persona,  on_delete=models.PROTECT)
