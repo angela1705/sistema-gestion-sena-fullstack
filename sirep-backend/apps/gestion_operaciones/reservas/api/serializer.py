@@ -2,7 +2,7 @@ from rest_framework import serializers
 from ..models import Reserva
 from apps.usuarios.persona.api.serializer import PersonaSerializer
 from apps.inventario.productos.api.serializer import ProductoSerializer
-from apps.gestion_operaciones.transaccion.api.serializer import TransaccionSerializer
+from apps.gestion_operaciones.transaccion.api.transaccion_serializer import TransaccionSerializer
 from apps.usuarios.persona.models import Persona
 
 class ReservaSerializer(serializers.ModelSerializer):

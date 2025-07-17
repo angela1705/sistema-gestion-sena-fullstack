@@ -113,6 +113,13 @@ class CajaDiariaAperturaSerializer(serializers.ModelSerializer):
                 'min_value': 0
             }
         }
+    def validate(self, data):
+        usuario = self.context['request'].user
+        if CajaDiaria.objects.filter(abierta_por=usuario, fecha_cierre__isnull=True).exists():
+            raise serializers.ValidationError(
+                "Ya tienes una caja abierta. Debes cerrarla antes de abrir una nueva."
+            )
+        return data
 
 
 class CajaDiariaCierreSerializer(serializers.ModelSerializer):
