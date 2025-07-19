@@ -37,7 +37,7 @@ class DetalleTransaccion(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.producto.nombre} x{self.cantidad}"
+        return f"{self.nombre_producto or self.producto.nombre} x{self.cantidad}"
 
     class Meta:
         ordering = ['id']

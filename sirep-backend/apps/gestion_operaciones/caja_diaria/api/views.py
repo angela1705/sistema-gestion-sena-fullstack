@@ -30,8 +30,11 @@ class CajaDiariaViewSet(viewsets.ModelViewSet):
         return CajaDiariaSerializer
 
     def perform_create(self, serializer):
-        """Asigna automáticamente el usuario que abre la caja"""
-        serializer.save(abierta_por=self.request.user)
+        """Asigna automáticamente el usuario que abre la caja y define saldo_final igual al saldo_inicial"""
+        caja = serializer.save(abierta_por=self.request.user)
+        if caja.saldo_final is None or caja.saldo_final == 0:
+            caja.saldo_final = caja.saldo_inicial
+            caja.save()
 
     @action(detail=True, methods=['post'])
     def cerrar_caja(self, request, pk=None):

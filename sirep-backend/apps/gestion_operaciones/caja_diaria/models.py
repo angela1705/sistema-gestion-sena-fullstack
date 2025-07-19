@@ -7,7 +7,7 @@ class CajaDiaria(models.Model):
     fecha_apertura = models.DateTimeField(auto_now_add=True)
     fecha_cierre = models.DateTimeField(null=True, blank=True)
     saldo_inicial = models.DecimalField(max_digits=10, decimal_places=2, default=0,validators=[MinValueValidator(0)])
-    saldo_final = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    saldo_final = models.DecimalField(max_digits=10, decimal_places=2, blank=True,default=0)
     unidadProductiva = models.ForeignKey(UnidadProductiva,on_delete=models.PROTECT)
     abierta_por = models.ForeignKey(Persona, on_delete=models.SET_NULL, null=True, related_name='cajas_abiertas')
     cerrada_por = models.ForeignKey(Persona, on_delete=models.SET_NULL, null=True, blank=True, related_name='cajas_cerradas')

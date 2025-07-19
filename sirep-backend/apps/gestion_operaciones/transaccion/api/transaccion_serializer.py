@@ -50,11 +50,26 @@ class TransaccionDetailSerializer(serializers.ModelSerializer):
 
 # SERIALIZER PARA CREAR UNA TRANSACCIÓN (VENTA O COMPRA)
 class ProductoTransaccionSerializer(serializers.Serializer):
-    producto_id = serializers.IntegerField()
+    producto_id = serializers.IntegerField(required=False)
+    nombre_producto = serializers.CharField(required=False)
     cantidad = serializers.IntegerField(min_value=1)
     precio_unitario = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False
-    )  # Solo requerido en compras
+    ) 
+
+    def validate(self, data):
+        tipo = self.context['tipo']
+        if tipo == Transaccion.VENTA:
+            if not data.get('producto_id'):
+                raise serializers.ValidationError("Se requiere producto_id para ventas.")
+            if 'precio_unitario' in data:
+                raise serializers.ValidationError("No debe enviarse precio_unitario en ventas.")
+        elif tipo == Transaccion.COMPRA:
+            if not data.get('nombre_producto'):
+                raise serializers.ValidationError("Se requiere nombre_producto en compras.")
+            if 'precio_unitario' not in data:
+                raise serializers.ValidationError("Se requiere precio_unitario en compras.")
+        return data 
 
 class TransaccionCreateSerializer(serializers.ModelSerializer):
     productos = ProductoTransaccionSerializer(many=True)
@@ -65,54 +80,73 @@ class TransaccionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaccion
         fields = ['tipo', 'productos', 'persona_id', 'unidad_productiva_id']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Añadir el tipo al contexto del serializer hijo
+        initial_data = kwargs.get('data')
+        if initial_data and 'tipo' in initial_data:
+            tipo = initial_data['tipo']
+            self.fields['productos'].child.context.update({'tipo': tipo})
 
     def validate(self, data):
         request = self.context['request']
         usuario = request.user
         tipo = data['tipo']
-        productos_data = data['productos']
         productos_validos = []
 
+        # Validar y limpiar productos usando el serializer hijo
+        productos_serializer = ProductoTransaccionSerializer(
+            data=data['productos'],
+            many=True,
+            context={'tipo': tipo})
+        
+        productos_serializer.is_valid(raise_exception=True)
+        productos_data = productos_serializer.validated_data
+
         if tipo == Transaccion.VENTA:
-            try:
-                try:
-                    caja_abierta = CajaDiaria.objects.filter(abierta_por=usuario, fecha_cierre__isnull=True).order_by('-fecha_apertura').first()
-                except CajaDiaria.DoesNotExist:
-                    raise serializers.ValidationError("No hay una caja abierta para este usuario.")
+            # Intentar obtener caja abierta
+            caja_abierta = CajaDiaria.objects.filter(
+                abierta_por=usuario, fecha_cierre__isnull=True
+            ).order_by('-fecha_apertura').first()
+
+            if caja_abierta:
+                unidad_caja = caja_abierta.unidadProductiva
                 data['caja_diaria'] = caja_abierta
                 data['persona'] = None
-                unidad_caja = caja_abierta.unidadProductiva
-            except CajaDiaria.DoesNotExist:
-                caja_abierta = None
-                data['caja_diaria'] = None
+            else:
                 unidad_caja = None
+                data['caja_diaria'] = None
 
             tiendaY_obligatoria = False
 
             for item in productos_data:
+                producto_id = item['producto_id']
+                cantidad = item['cantidad']
+
                 try:
-                    producto = Producto.objects.get(id=item['producto_id'])
+                    producto = Producto.objects.get(id=producto_id)
                 except Producto.DoesNotExist:
-                    raise serializers.ValidationError(f"Producto con ID {item['producto_id']} no encontrado.")
+                    raise serializers.ValidationError(f"Producto con ID {producto_id} no encontrado.")
 
                 if producto.unidadP and producto.unidadP.nombre == "Tienda Yamboro":
                     tiendaY_obligatoria = True
 
                 if caja_abierta and producto.unidadP != unidad_caja:
                     raise serializers.ValidationError(
-                        f"El producto '{producto}' no pertenece a la unidad de la caja abierta."
-                    )
+                    f"El producto '{producto}' no pertenece a la unidad de la caja abierta."
+                )
 
                 if producto.stock and producto.stock_actual is not None:
-                    if producto.stock_actual < item['cantidad']:
+                    if producto.stock_actual < cantidad:
                         raise serializers.ValidationError(
-                            f"Stock insuficiente para '{producto.nombre}'. Quedan {producto.stock_actual} unidades."
-                        )
+                        f"Stock insuficiente para '{producto.nombre}'. Quedan {producto.stock_actual} unidades."
+                    )
 
                 productos_validos.append({
                     'producto': producto,
-                    'cantidad': item['cantidad']
-                })
+                    'cantidad': cantidad})
 
             if tiendaY_obligatoria and not caja_abierta:
                 raise serializers.ValidationError("Debe abrir caja para registrar ventas de la Tienda Yamboro.")
@@ -128,11 +162,15 @@ class TransaccionCreateSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("La persona no existe.")
 
         elif tipo == Transaccion.COMPRA:
-            try:
-                caja_abierta = CajaDiaria.objects.get(usuario=usuario, cerrada=False)
+            # Verificar caja abierta
+            caja_abierta = CajaDiaria.objects.filter(
+                abierta_por=usuario, fecha_cierre__isnull=True
+            ).order_by('-fecha_apertura').first()
+
+            if caja_abierta:
                 data['caja_diaria'] = caja_abierta
                 data['persona'] = usuario
-            except CajaDiaria.DoesNotExist:
+            else:
                 data['caja_diaria'] = None
                 data['persona'] = usuario
 
@@ -145,21 +183,17 @@ class TransaccionCreateSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Unidad productiva inválida.")
 
             for item in productos_data:
-                try:
-                    producto = Producto.objects.get(id=item['producto_id'])
-                except Producto.DoesNotExist:
-                    raise serializers.ValidationError(f"Producto con ID {item['producto_id']} no encontrado.")
+                nombre_producto = item['nombre_producto']
+                cantidad = item['cantidad']
+                precio_unitario = item['precio_unitario']
 
-                if 'precio_unitario' not in item:
-                    raise serializers.ValidationError(
-                        f"Debe proporcionar el 'precio_unitario' para el producto '{producto.nombre}'."
-                    )
-
+                producto = Producto.objects.create(nombre=nombre_producto,descripcion=f"Compra de {nombre_producto}",
+                           stock=False,stock_actual=None,reservas=False,hora_limite_reserva=None,max_reservas=None,
+                           precio_compra=precio_unitario,unidadP=data.get("unidad_productiva"))
                 productos_validos.append({
                     'producto': producto,
-                    'cantidad': item['cantidad'],
-                    'precio_unitario': item['precio_unitario']
-                })
+                    'cantidad': cantidad,
+                    'precio_unitario': precio_unitario})
 
         else:
             raise serializers.ValidationError("Tipo de transacción inválido.")
@@ -207,10 +241,18 @@ class TransaccionCreateSerializer(serializers.ModelSerializer):
         transaccion.monto_total = monto_total
         transaccion.save()
 
-        if tipo == Transaccion.COMPRA and caja_diaria:
-            if caja_diaria.saldo_final < monto_total:
-                raise serializers.ValidationError("Saldo insuficiente en la caja para registrar la compra.")
-            caja_diaria.saldo_final -= monto_total
+        if caja_diaria:
+            if caja_diaria.saldo_final is None:
+                caja_diaria.saldo_final = caja_diaria.saldo_inicial
+
+            if tipo == Transaccion.COMPRA:
+                if caja_diaria.saldo_final < monto_total:
+                    raise serializers.ValidationError("Saldo insuficiente en la caja para registrar la compra.")
+                caja_diaria.saldo_final -= monto_total
+
+            elif tipo == Transaccion.VENTA:
+                caja_diaria.saldo_final += monto_total
+
             caja_diaria.save()
 
         return transaccion
