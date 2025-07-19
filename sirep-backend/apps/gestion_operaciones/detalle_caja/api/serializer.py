@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ..models import DetalleCaja, Tipo
-from apps.gestion_operaciones.transaccion.api.serializer import TransaccionSerializer
+from apps.gestion_operaciones.transaccion.api.transaccion_serializer import TransaccionSerializer
 from apps.gestion_operaciones.caja_diaria.api.serializer import CajaDiariaSerializer
 
 class DetalleCajaSerializer(serializers.ModelSerializer):

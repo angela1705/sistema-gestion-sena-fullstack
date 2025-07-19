@@ -29,7 +29,7 @@ class UnidadProductiva(models.Model):
     tipo = models.CharField(max_length=25,choices=TIPO_UNIDAD)
     estado = models.CharField(max_length=20, choices=ESTADOS_UNIDAD,  default='activa')
     encargado = models.ForeignKey(Persona, on_delete=models.SET_NULL, null=True, blank=True)
-    sede = models.ForeignKey(Sede, on_delete=models.CASCADE)
+    sede = models.ForeignKey(Sede, on_delete=models.CASCADE, related_name="unidades_productivas")
     horario_atencion = models.CharField( max_length=100,blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
