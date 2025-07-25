@@ -7,6 +7,7 @@ from .filters import CajaDiariaFilter
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from ..models import CajaDiaria
+from django.db.models import F, ExpressionWrapper, FloatField
 from .serializer import (
     CajaDiariaSerializer,
     CajaDiariaAperturaSerializer,
@@ -71,16 +72,17 @@ class CajaDiariaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def resumen_cajas(self, request):
         """
-        Devuelve un resumen de cajas por unidad productiva
+        Devuelve un resumen de cajas por unidad productiva, incluyendo total de dinero movido
         """
         from django.db.models import Sum, Count
-        resumen = CajaDiaria.objects.values(
-            'unidadProductiva__id',
-            'unidadProductiva__nombre'
-        ).annotate(
-            total_cajas=Count('id'),
-            cajas_abiertas=Count('id', filter=Q(fecha_cierre__isnull=True)),
-            total_movido=Sum('saldo_final') - Sum('saldo_inicial')
-        )
-        
+
+        cajas = CajaDiaria.objects.annotate(
+            movido=ExpressionWrapper(F('saldo_final') - F('saldo_inicial'),output_field=FloatField()))
+
+        resumen = cajas.values( 'unidadProductiva__id','unidadProductiva__nombre').annotate(
+        total_cajas=Count('id'),
+        cajas_abiertas=Count('id', filter=Q(fecha_cierre__isnull=True)),
+        total_movido=Sum('movido')
+    )
+
         return Response(resumen)
