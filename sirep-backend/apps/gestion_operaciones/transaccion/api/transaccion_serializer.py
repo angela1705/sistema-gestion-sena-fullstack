@@ -4,6 +4,7 @@ from apps.inventario.productos.models import Producto
 from apps.usuarios.persona.models import Persona
 from apps.gestion_operaciones.caja_diaria.models import CajaDiaria
 from apps.entidades.unidades_productivas.models import UnidadProductiva
+from apps.gestion_operaciones.detalle_caja.models import DetalleCaja, Tipo
 
 # SERIALIZER PARA CADA PRODUCTO DE UNA TRANSACCIÓN (DETALLE)
 class DetalleTransaccionSerializer(serializers.ModelSerializer):
@@ -215,6 +216,11 @@ class TransaccionCreateSerializer(serializers.ModelSerializer):
 
         monto_total = 0
 
+        if tipo == Transaccion.COMPRA and caja_diaria:
+            total_compra = sum(item['precio_unitario'] * item['cantidad'] for item in productos)
+            if caja_diaria.saldo_final is not None and total_compra > caja_diaria.saldo_final:
+                raise serializers.ValidationError("Saldo insuficiente en caja para registrar esta compra.")
+
         for item in productos:
             producto = item['producto']
             cantidad = item['cantidad']
@@ -246,13 +252,19 @@ class TransaccionCreateSerializer(serializers.ModelSerializer):
                 caja_diaria.saldo_final = caja_diaria.saldo_inicial
 
             if tipo == Transaccion.COMPRA:
-                if caja_diaria.saldo_final < monto_total:
-                    raise serializers.ValidationError("Saldo insuficiente en la caja para registrar la compra.")
                 caja_diaria.saldo_final -= monto_total
 
             elif tipo == Transaccion.VENTA:
                 caja_diaria.saldo_final += monto_total
 
             caja_diaria.save()
+
+            tipo_detalle = Tipo.INGRESO if tipo == Transaccion.VENTA else Tipo.EGRESO
+            DetalleCaja.objects.create(
+                caja=caja_diaria,
+                transaccion=transaccion,
+                descripcion=f"{'Venta' if tipo == Transaccion.VENTA else 'Compra'} registrada",
+                tipo=tipo_detalle,
+                monto=monto_total)
 
         return transaccion

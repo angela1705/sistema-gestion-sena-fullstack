@@ -1,32 +1,54 @@
 from rest_framework import serializers
-from ..models import DetalleCaja, Tipo
+from ..models import DetalleCaja
 from apps.gestion_operaciones.transaccion.api.transaccion_serializer import TransaccionSerializer
-from apps.gestion_operaciones.caja_diaria.api.serializer import CajaDiariaSerializer
 
 class DetalleCajaSerializer(serializers.ModelSerializer):
-    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
-    transaccion_info = TransaccionSerializer(source='transaccion', read_only=True)
-    caja_info = CajaDiariaSerializer(source='caja', read_only=True)
+    tipo_display = serializers.CharField(
+        source='get_tipo_display', 
+        read_only=True
+    )
+    transaccion_info = TransaccionSerializer(
+        source='transaccion', 
+        read_only=True
+    )
+    comprobante_url = serializers.SerializerMethodField()
 
     class Meta:
         model = DetalleCaja
         fields = [
-            'id', 'caja', 'caja_info',
-            'transaccion', 'transaccion_info',
-            'tipo', 'tipo_display',
-            'monto', 'fecha', 'descripcion'
+            'id',
+            'caja',
+            'transaccion',
+            'transaccion_info',
+            'fecha',
+            'tipo',
+            'tipo_display',
+            'monto',
+            'descripcion',
+            'beneficiario',
+            'comprobante',
+            'comprobante_url'
         ]
-        read_only_fields = ['id', 'fecha', 'tipo_display', 'transaccion_info', 'caja_info']
+        read_only_fields = [
+            'id',
+            'fecha',
+            'tipo_display',
+            'comprobante_url',
+            'transaccion_info'
+        ]
         extra_kwargs = {
-            'descripcion': {'required': False},
-            'monto': {'min_value': 0}
+            'monto': {'min_value': 0.01}
         }
 
+    def get_comprobante_url(self, obj):
+        if obj.comprobante and hasattr(obj.comprobante, 'url'):
+            return self.context['request'].build_absolute_uri(obj.comprobante.url)
+        return None
+
     def validate(self, data):
-        if not data.get('caja'):
-            raise serializers.ValidationError({"caja": "La caja es obligatoria."})
-        if not data.get('tipo'):
-            raise serializers.ValidationError({"tipo": "El tipo (ingreso o egreso) es obligatorio."})
-        if not data.get('monto') or data['monto'] < 0:
-            raise serializers.ValidationError({"monto": "Debe ingresar un monto válido."})
+        """Validaciones personalizadas"""
+        if data['tipo'] == 'ingreso' and not data.get('transaccion'):
+            raise serializers.ValidationError(
+                "Los ingresos deben estar asociados a una transacción"
+            )
         return data
