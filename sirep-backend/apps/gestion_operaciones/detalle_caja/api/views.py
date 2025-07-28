@@ -35,9 +35,8 @@ class DetalleCajaViewSet(viewsets.ModelViewSet):
         total_egresos = egresos.aggregate(total=Sum('monto'))['total'] or 0
         saldo_estimado = caja.saldo_inicial + total_ingresos - total_egresos
 
-        
-
         comisiones = []
+        total_comision = 0
         for detalle in ingresos:
             transaccion = detalle.transaccion
             # Buscar el detalle de transacción para obtener el producto
@@ -47,6 +46,7 @@ class DetalleCajaViewSet(viewsets.ModelViewSet):
 
             if producto and producto.comision:
                 valor_comision = detalle.monto * (producto.comision / 100)
+                total_comision += valor_comision
                 comisiones.append({
                     'producto': str(producto.nombre),
                     'valor_venta': detalle.monto,
@@ -64,6 +64,7 @@ class DetalleCajaViewSet(viewsets.ModelViewSet):
             'total_ingresos': total_ingresos,
             'total_egresos': total_egresos,
             'saldo_estimado': saldo_estimado,
+            'total_comision': round(total_comision, 2),
             'comisiones': comisiones,
             'detalles': serializer.data
         }, status=200)
