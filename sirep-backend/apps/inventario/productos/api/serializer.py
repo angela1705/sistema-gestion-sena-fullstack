@@ -36,7 +36,7 @@ class ProductoSerializer(serializers.ModelSerializer):
             'precio_final', 'precio_para_usuario', 'precios_personalizados',
             'disponible_para_reservas',
             'imagen', 'imagen_url',
-            'unidad_medida_base', 'unidad_medida_display','comision',
+            'unidad_medida_base', 'unidad_medida_display','tiene_comision','comision',
              'unidad_comision_destino'
         ]
         read_only_fields = ['id', 'precio_descuento', 'precio_final']
@@ -151,7 +151,7 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
             'reservas', 'hora_limite_reserva', 'max_reservas',
             'precio_compra', 'tiene_descuento',
             'porcentaje_descuento', 'imagen',
-            'unidad_medida_base',"comision","unidad_comision_destino"
+            'unidad_medida_base','tiene_comision','comision','unidad_comision_destino'
         ]
         extra_kwargs = {
             'imagen': {'required': False},
