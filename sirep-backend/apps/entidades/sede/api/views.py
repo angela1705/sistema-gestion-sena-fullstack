@@ -26,8 +26,3 @@ class SedeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    @action(detail=False, methods=['get'])
-    def opciones_nombres(self, request):
-        """Devuelve las opciones disponibles para el campo nombre"""
-        opciones = dict(Sede.OPCIONES_SEDES)
-        return Response(opciones, status=status.HTTP_200_OK)

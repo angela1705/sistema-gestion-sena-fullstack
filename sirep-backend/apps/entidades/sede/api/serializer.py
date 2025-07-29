@@ -3,14 +3,12 @@ from ..models import Sede
 from apps.entidades.sena_empresa.api.serializer import SenaEmpresaCreateSerializer
 
 class SedeSerializer(serializers.ModelSerializer):
-    nombre_display = serializers.CharField(source='get_nombre_display', read_only=True)
-    nombre_completo = serializers.CharField(read_only=True)
     sena_empresa_info = SenaEmpresaCreateSerializer(source='sena_empresa', read_only=True)
     
     class Meta:
         model = Sede
         fields = [
-            'id', 'nombre', 'nombre_display', 'nombre_completo',
+            'id', 'nombre', 
             'sena_empresa', 'sena_empresa_info', 'direccion',
             'telefono', 'responsable', 'activa', 'fecha_creacion'
         ]

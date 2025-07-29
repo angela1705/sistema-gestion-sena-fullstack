@@ -1,177 +1,142 @@
-// src/components/entidades/SedeForm.tsx
-import React, { useState, useEffect } from 'react';
-import { Button, Input, Switch, Select, SelectItem } from '@heroui/react';
-import { SedeFormData, SedeOption } from '../../types/entidades/sede';
+import React from 'react';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Input, Button, Switch } from '@nextui-org/react';
+import { useForm } from 'react-hook-form';
+import { Sede } from '@/types/entidades/sede';
+import { SenaEmpresaSelector } from './SenaEmpresaSelector';
+import { useSenaEmpresas } from '@/hook/entidades/useSenaEmpresas';
 
 interface SedeFormProps {
-  formData: SedeFormData;
-  senaEmpresas: SedeOption[];
-  onChange: (field: keyof SedeFormData, value: any) => void;
-  onSubmit: () => void;
-  loading: boolean;
-  error: string | null;
-  empresasLoading: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: Sede) => void;
+  isSubmitting: boolean;
+  sede?: Sede | null;
+  error?: string | null;
 }
 
-export const SedeForm: React.FC<SedeFormProps> = ({
-  formData,
-  senaEmpresas = [],
-  onChange,
-  onSubmit,
-  loading,
-  error,
-  empresasLoading,
-}) => {
-  const [nombreOptions, setNombreOptions] = useState<{ value: string; label: string }[]>([]);
-  const [optionsLoading, setOptionsLoading] = useState(false);
+export const SedeForm = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  isSubmitting,
+  sede,
+  error
+}: SedeFormProps) => {
+  const { empresas, loading: loadingEmpresas, error: empresasError } = useSenaEmpresas();
+  const { 
+    register, 
+    handleSubmit, 
+    setValue, 
+    watch, 
+    formState: { errors },
+    reset
+  } = useForm<Sede>({
+    defaultValues: sede || {
+      nombre: '',
+      sena_empresa: undefined,
+      direccion: '',
+      telefono: '',
+      responsable: '',
+      activa: true
+    }
+  });
 
-  useEffect(() => {
-    const fetchNombreOptions = async () => {
-      setOptionsLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:8000/api/sedes/opciones_nombres/', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Error al obtener opciones de nombre');
-        const data = await response.json();
-        const options = Object.entries(data).map(([value, label]) => ({
-          value,
-          label: label as string,
-        }));
-        setNombreOptions(options);
-      } catch (err) {
-        console.error('Error al obtener opciones de nombre:', err);
-      } finally {
-        setOptionsLoading(false);
-      }
-    };
-    fetchNombreOptions();
-  }, []);
-
-  console.log('SedeForm - Datos:', { formData, senaEmpresas, nombreOptions });
+  React.useEffect(() => {
+    register('sena_empresa', { 
+      required: 'Debe seleccionar una empresa SENA' 
+    });
+    
+    // Resetear formulario cuando cambia el modo (crear/editar)
+    reset(sede || {
+      nombre: '',
+      sena_empresa: undefined,
+      direccion: '',
+      telefono: '',
+      responsable: '',
+      activa: true
+    });
+  }, [register, reset, sede]);
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="text-red-500 p-2 rounded bg-red-50 mb-4">
-          {error}
-        </div>
-      )}
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <ModalContent>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <ModalHeader className="border-b">
+            {sede ? 'Editar Sede' : 'Crear Nueva Sede'}
+          </ModalHeader>
+          <ModalBody className="py-6 gap-4">
+            {error && (
+              <div className="px-4 py-2 bg-danger-100 text-danger-700 rounded-lg">
+                {error}
+              </div>
+            )}
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Seleccione el nombre*</label>
-        <Select
-          label="Nombre de la Sede"
-          placeholder="Seleccione el nombre de la sede"
-          selectedKeys={formData.nombre ? [formData.nombre] : []}
-          onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0]?.toString() || '';
-            console.log('Select nombre - Valor seleccionado:', value);
-            onChange('nombre', value);
-          }}
-          isRequired
-          isDisabled={optionsLoading || nombreOptions.length === 0}
-          className="w-full"
-        >
-          {nombreOptions.length === 0 ? (
-            <SelectItem key="no-options" isDisabled>
-              No hay nombres disponibles
-            </SelectItem>
-          ) : (
-            nombreOptions.map((option) => (
-              <SelectItem key={option.value}>
-                {option.label}
-              </SelectItem>
-            ))
-          )}
-        </Select>
-      </div>
+            <Input
+              label="Nombre de la Sede"
+              {...register('nombre', { required: 'Este campo es requerido' })}
+              isInvalid={!!errors.nombre}
+              errorMessage={errors.nombre?.message}
+              variant="bordered"
+            />
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Seleccione la empresa*</label>
-        <Select
-          label="Empresa SENA"
-          placeholder="Seleccione la empresa SENA"
-          selectedKeys={formData.sena_empresa ? [formData.sena_empresa] : []}
-          onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0]?.toString() || '';
-            console.log('Select sena_empresa - Valor seleccionado:', value);
-            onChange('sena_empresa', value);
-          }}
-          isRequired
-          isDisabled={empresasLoading || senaEmpresas.length === 0}
-          className="w-full"
-        >
-          {senaEmpresas.length === 0 ? (
-            <SelectItem key="no-options" isDisabled>
-              No hay empresas disponibles
-            </SelectItem>
-          ) : (
-            senaEmpresas.map((empresa) => (
-              <SelectItem key={empresa.id.toString()}>
-                {empresa.nombre_display}
-              </SelectItem>
-            ))
-          )}
-        </Select>
-      </div>
+            <SenaEmpresaSelector
+              selectedEmpresaId={watch('sena_empresa')}
+              onEmpresaChange={(id) => setValue('sena_empresa', id)}
+              empresas={empresas}
+              isLoading={loadingEmpresas}
+              error={empresasError || errors.sena_empresa?.message}
+            />
 
-      <Input
-        label="Dirección*"
-        placeholder="Ingrese la dirección"
-        value={formData.direccion}
-        onChange={(e) => onChange('direccion', e.target.value)}
-        isRequired
-        isDisabled={empresasLoading || optionsLoading}
-        className="w-full"
-      />
+            <Input
+              label="Dirección"
+              {...register('direccion', { required: 'Este campo es requerido' })}
+              isInvalid={!!errors.direccion}
+              errorMessage={errors.direccion?.message}
+              variant="bordered"
+            />
 
-      <Input
-        label="Teléfono*"
-        placeholder="Ingrese el teléfono"
-        value={formData.telefono}
-        onChange={(e) => onChange('telefono', e.target.value)}
-        isRequired
-        isDisabled={empresasLoading || optionsLoading}
-        className="w-full"
-      />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Teléfono"
+                {...register('telefono')}
+                variant="bordered"
+              />
+              <Input
+                label="Responsable"
+                {...register('responsable')}
+                variant="bordered"
+              />
+            </div>
 
-      <Input
-        label="Responsable"
-        placeholder="Ingrese el nombre del responsable"
-        value={formData.responsable}
-        onChange={(e) => onChange('responsable', e.target.value)}
-        isDisabled={empresasLoading || optionsLoading}
-        className="w-full"
-      />
-
-      <Switch
-        isSelected={formData.activa}
-        onValueChange={(value) => onChange('activa', value)}
-        isDisabled={empresasLoading || optionsLoading}
-        className="w-full"
-      >
-        Sede activa
-      </Switch>
-
-      <div className="flex justify-end pt-4">
-        <Button
-          color="primary"
-          onPress={onSubmit}
-          isLoading={loading}
-          isDisabled={
-            loading ||
-            !formData.nombre ||
-            !formData.sena_empresa ||
-            !formData.direccion ||
-            !formData.telefono
-          }
-          className="w-full md:w-auto"
-        >
-          {loading ? 'Guardando...' : 'Guardar Sede'}
-        </Button>
-      </div>
-    </div>
+            <Switch
+              isSelected={watch('activa') ?? true}
+              onValueChange={(val) => setValue('activa', val)}
+              classNames={{
+                base: "mt-2"
+              }}
+            >
+              Sede activa
+            </Switch>
+          </ModalBody>
+          <ModalFooter className="border-t">
+            <Button 
+              color="danger" 
+              variant="light" 
+              onPress={onClose}
+              isDisabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              color="primary" 
+              type="submit"
+              isLoading={isSubmitting}
+            >
+              {sede ? 'Guardar Cambios' : 'Crear Sede'}
+            </Button>
+          </ModalFooter>
+        </form>
+      </ModalContent>
+    </Modal>
   );
-};
+}; 

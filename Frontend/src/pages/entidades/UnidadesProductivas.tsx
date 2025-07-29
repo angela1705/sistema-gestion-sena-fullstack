@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Card, CardBody } from '@heroui/react';
 import { FaPlus } from 'react-icons/fa';
 import { useUnidadesProductivas } from '../../hook/entidades/useUnidadesProductivas';
-import { useSedeOptions } from '../../hook/entidades/useSedeOptions';
+import { useSedeOptions } from '@/hook/entidades/useSedeOptions';
 import { useRegistrarUnidadProductiva } from '../../hook/entidades/useRegistrarUnidadProductiva';
 import Tabla from '../../components/global/Tabla';
 import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react';
