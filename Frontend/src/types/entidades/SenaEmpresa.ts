@@ -1,4 +1,3 @@
-// src/types/senaEmpresa.ts
 export interface SenaEmpresa {
   id: number;
   nombre: string;
@@ -6,10 +5,15 @@ export interface SenaEmpresa {
   direccion_principal: string;
   telefono_contacto: string;
   email_contacto: string;
-  logo?: string | null;
+  logo?: string | File|null;
   logo_url?: string | null;
   fecha_creacion: string;
   activa: boolean;
-  sedes_activas: any[]; // Ajustar según la estructura real de sedes
+  sedes_activas: any[]; 
   detail_url: string;
+}
+
+export interface SenaEmpresaOption {
+  id: number;
+  nombre: string;
 }

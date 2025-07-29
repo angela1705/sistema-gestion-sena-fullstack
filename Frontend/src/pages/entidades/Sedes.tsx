@@ -1,136 +1,145 @@
-// src/pages/entidades/Sedes.tsx
-import { useState } from 'react';
-import { Button, Card, CardBody } from '@nextui-org/react';
-import { FaPlus } from 'react-icons/fa';
-import { useSedes } from '../../hook/entidades/useSedes';
-import { useRegistrarSede } from '../../hook/entidades/useRegistrarSede';
-import { useSenaEmpresas } from '../../hook/entidades/useSenaEmpresas';
-import { SedeForm } from '../../components/entidades/SedeForm';
-import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/modal';
-import Tabla from '../../components/global/Tabla';
-import { SedeOption } from '../../types/entidades/sede';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSedes } from '@/hook/entidades/useSedes';
+import { useManageSede } from '@/hook/entidades/useManageSede';
+import { Button, Card, CardBody, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Spinner } from '@nextui-org/react';
+import { FaPlus, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { SedeForm } from '@/components/entidades/SedeForm';
+import { Sede } from '@/types/entidades/sede';
 
-const columns = [
-  { uid: 'nombre_display', name: 'Nombre' },
-  {
-    uid: 'sena_empresa',
-    name: 'Empresa SENA',
-    render: (data: any, row: any, senaEmpresas: SedeOption[]) => {
-      console.log('Render sena_empresa:', { data, row, senaEmpresas });
-      if (data && typeof data === 'object' && data.nombre) {
-        return data.nombre; // sena_empresa_info.nombre
-      }
-      const empresa = senaEmpresas?.find((emp) => emp?.id === parseInt(data));
-      return empresa ? empresa.nombre_display : 'Sin empresa';
-    },
-  },
-  { uid: 'direccion', name: 'Dirección' },
-  { uid: 'telefono', name: 'Teléfono' },
-  { uid: 'responsable', name: 'Responsable' },
-  {
-    uid: 'activa',
-    name: 'Activa',
-    render: (data: boolean) => (data ? 'Activa' : 'Inactiva'),
-  },
-];
+interface SedesProps {
+  isNavbarOpen: boolean;
+}
 
-const searchableFields = ['nombre_display', 'direccion', 'responsable'];
+const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
+  const navigate = useNavigate();
+  const { sedes, isLoading, error, retry } = useSedes('http://localhost:8000/api/sedes/');
+  const { 
+    success, 
+    error: manageError, 
+    loading: manageLoading, 
+    toggleActiva, 
+    createUpdateSede, 
+    reset 
+  } = useManageSede('http://localhost:8000/api/sedes/');
+  
+  const [selectedSede, setSelectedSede] = useState<Sede | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
-export default function Sedes({ isNavbarOpen }: { isNavbarOpen: boolean }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { sedes, loading: sedesLoading, error: sedesError, refetch } = useSedes();
-  const { registrarSede, loading: registerLoading, error: registerError } = useRegistrarSede();
-  const { senaEmpresasAsOptions, isLoading: empresasLoading, error: empresasError } = useSenaEmpresas();
+  useEffect(() => {
+    if (error?.includes('No tienes permisos')) {
+      navigate('/login');
+    }
+  }, [error, navigate]);
 
-  console.log('Estado de sedes:', { sedes, sedesLoading, sedesError });
-  console.log('Estado de empresas:', { senaEmpresasAsOptions, empresasLoading, empresasError });
+  useEffect(() => {
+    if (success) {
+      setIsFormOpen(false);
+      setSelectedSede(null);
+      reset();
+      retry();
+    }
+  }, [success, reset, retry]);
 
-  const [formData, setFormData] = useState({
-    nombre: '',
-    sena_empresa: '',
-    direccion: '',
-    telefono: '',
-    responsable: '',
-    activa: true,
-  });
-
-  const handleChange = (field: keyof typeof formData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleToggleActiva = async (id: number, currentStatus: boolean) => {
+    await toggleActiva(id, currentStatus);
+    retry(); // Actualizar la lista después del cambio
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (data: Sede) => {
     try {
-      console.log('Enviando formData:', formData);
-      await registrarSede(formData);
-      setIsModalOpen(false);
-      setFormData({
-        nombre: '',
-        sena_empresa: '',
-        direccion: '',
-        telefono: '',
-        responsable: '',
-        activa: true,
-      });
-      refetch();
+      await createUpdateSede(data, !!selectedSede?.id);
     } catch (err) {
-      console.error('Error al registrar sede:', err);
+      console.error('Error al guardar sede:', err);
     }
   };
 
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${
-        isNavbarOpen ? 'ml-64' : 'ml-16'
-      } flex items-center justify-center`}
-    >
-      <Card className="w-full max-w-5xl">
-        <CardBody className="flex flex-col p-6">
-          <div className="flex flex-col sm:flex-col justify-start mb-4 gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Lista de Sedes</h1>
+    <div className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${isNavbarOpen ? 'ml-64' : 'ml-16'}`}>
+      <Card className="w-full max-w-6xl mx-auto">
+        <CardBody className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestión de Sedes</h1>
+            <Button
+              color="primary"
+              startContent={<FaPlus />}
+              onPress={() => {
+                setSelectedSede(null);
+                setIsFormOpen(true);
+              }}
+            >
+              Nueva Sede
+            </Button>
           </div>
 
-          {sedesLoading && <p className="text-gray-500">Cargando sedes...</p>}
-          {sedesError && <p className="text-red-500 mb-4">{sedesError}</p>}
-          {empresasError && <p className="text-red-500 mb-4">Error al cargar empresas: {empresasError}</p>}
-          {sedes?.length === 0 && !sedesLoading && !sedesError && (
-            <p className="text-gray-500 mb-4">No hay sedes para mostrar.</p>
-          )}
-          <Tabla
-            columns={columns}
-            data={sedes || []}
-            searchableFields={searchableFields}
-            senaEmpresas={senaEmpresasAsOptions || []}
-            extraControls={
-              <div className="flex items-center gap-4">
-                <Button
-                  onPress={() => setIsModalOpen(true)}
-                  color="primary"
-                  startContent={<FaPlus />}
-                >
-                  Registrar
-                </Button>
-              </div>
-            }
-          />
+          {isLoading && <Spinner className="my-4" />}
+          {error && <div className="text-red-500 mb-4">{error}</div>}
 
-          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-            <ModalContent>
-              <ModalHeader>Registrar Nueva Sede</ModalHeader>
-              <ModalBody>
-                <SedeForm
-                  formData={formData}
-                  senaEmpresas={senaEmpresasAsOptions || []}
-                  onChange={handleChange}
-                  onSubmit={handleSubmit}
-                  loading={registerLoading}
-                  error={registerError || empresasError}
-                  empresasLoading={empresasLoading}
-                />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
+          {sedes.length > 0 ? (
+            <Table aria-label="Tabla de sedes">
+              <TableHeader>
+                <TableColumn>NOMBRE</TableColumn>
+                <TableColumn>EMPRESA</TableColumn>
+                <TableColumn>DIRECCIÓN</TableColumn>
+                <TableColumn>RESPONSABLE</TableColumn>
+                <TableColumn>ESTADO</TableColumn>
+                <TableColumn>ACCIONES</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {sedes.map((sede) => (
+                  <TableRow key={sede.id}>
+                    <TableCell>{sede.nombre}</TableCell>
+                    <TableCell>{sede.sena_empresa_info?.nombre || 'Sin empresa'}</TableCell>
+                    <TableCell>{sede.direccion}</TableCell>
+                    <TableCell>{sede.responsable || '-'}</TableCell>
+                    <TableCell>
+                      <Chip color={sede.activa ? 'success' : 'danger'}>
+                        {sede.activa ? 'Activa' : 'Inactiva'}
+                      </Chip>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          isIconOnly
+                          onPress={() => {
+                            setSelectedSede(sede);
+                            setIsFormOpen(true);
+                          }}
+                        >
+                          <FaEdit />
+                        </Button>
+                        <Button
+                          size="sm"
+                          isIconOnly
+                          color={sede.activa ? 'warning' : 'success'}
+                          onPress={() => handleToggleActiva(sede.id!, sede.activa)}
+                          isLoading={manageLoading}
+                        >
+                          {sede.activa ? <FaToggleOff /> : <FaToggleOn />}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            !isLoading && <p className="text-gray-500">No hay sedes registradas</p>
+          )}
         </CardBody>
       </Card>
+
+      <SedeForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleSubmit}
+        isSubmitting={manageLoading}
+        sede={selectedSede}
+        error={manageError}
+      />
     </div>
   );
-}
+};
+
+export default Sedes;
