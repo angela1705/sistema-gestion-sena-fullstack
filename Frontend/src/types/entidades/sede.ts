@@ -1,5 +1,5 @@
 export interface Sede {
-  id?: number;
+  id: number;
   nombre: string;
   sena_empresa: number| null;
   sena_empresa_info?: {

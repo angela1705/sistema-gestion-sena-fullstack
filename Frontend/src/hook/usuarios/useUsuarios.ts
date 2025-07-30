@@ -7,6 +7,7 @@ export interface UseUsuariosResponse {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  updateUserStatus: (userId: number, isActive: boolean) => Promise<void>;
 }
 
 export const useUsuarios = (): UseUsuariosResponse => {
@@ -45,5 +46,32 @@ export const useUsuarios = (): UseUsuariosResponse => {
     fetchUsuarios();
   }, []);
 
-  return { usuarios, loading, error, refetch: fetchUsuarios };
+  const updateUserStatus = async (userId: number, isActive: boolean) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No se encontró el token de autenticación');
+
+      const response = await fetch(`http://localhost:8000/api/personas/${userId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_active: isActive }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al actualizar el estado');
+      }
+
+      // Actualizar la lista de usuarios
+      await fetchUsuarios();
+    } catch (err) {
+      console.error('Error actualizando el estado del usuario:', err);
+    }
+  };
+    
+
+  return { usuarios, loading, error, refetch: fetchUsuarios, updateUserStatus };
 };

@@ -55,7 +55,7 @@ const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${isNavbarOpen ? 'ml-64' : 'ml-16'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 pt-16 ${isNavbarOpen ? 'ml-64' : 'ml-16'} flex items-center justify-center`}>
       <Card className="w-full max-w-6xl mx-auto">
         <CardBody className="p-6">
           <div className="flex justify-between items-center mb-6">
@@ -76,7 +76,8 @@ const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
           {error && <div className="text-red-500 mb-4">{error}</div>}
 
           {sedes.length > 0 ? (
-            <Table aria-label="Tabla de sedes">
+            <div className="mt-10">
+              <Table aria-label="Tabla de sedes">
               <TableHeader>
                 <TableColumn>NOMBRE</TableColumn>
                 <TableColumn>EMPRESA</TableColumn>
@@ -123,7 +124,8 @@ const Sedes: React.FC<SedesProps> = ({ isNavbarOpen }) => {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           ) : (
             !isLoading && <p className="text-gray-500">No hay sedes registradas</p>
           )}
