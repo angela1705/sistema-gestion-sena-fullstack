@@ -5,12 +5,25 @@ import { Button, Card, CardBody } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
 import Tabla from "../../components/global/Tabla";
 import { FaPlus } from "react-icons/fa";
+import { Persona } from "@/types/usuarios/usuarios";
+import { DropdownEdicion } from "@/components/usuarios/DropdownEdicion"
+import { ToggleEstado } from "@/components/usuarios/ToggleEstado"
 
 interface UsuariosProps {
   isNavbarOpen: boolean;
 }
 
-const columns = [
+const searchableFields = ["first_name", "last_name", "identificacion"];
+
+const Usuarios: React.FC<UsuariosProps> = ({ isNavbarOpen }) => {
+  const { usuarios, error,refetch } = useUsuarios(); 
+  const navigate = useNavigate();
+
+  const handleResetPassword = (userId: number) => {
+    console.log("Reset password for user:", userId);
+  };
+
+  const columns = [
   { uid: "identificacion", name: "Identificación" },
   { uid: "first_name", name: "Nombre" },
   { uid: "last_name", name: "Apellido" },
@@ -20,13 +33,30 @@ const columns = [
   { uid: "cargo_nombre", name: "Cargo" },
   { uid: "sede_nombre", name: "Sede" },
   { uid: "numFicha", name: "Número de Ficha" },
+  { uid: "is_active",name: "Estado", render: (isActive: boolean, row: Persona) => (
+      <ToggleEstado 
+        initialValue={isActive} 
+        userId={row.id} 
+        onToggle={() => refetch()} 
+      />)
+  },
+  { uid: "foto_url",name: "Foto", render: (fotoUrl: string) => (
+      fotoUrl ? 
+        <img src={fotoUrl} className="w-10 h-10 rounded-full mx-auto" alt="Foto perfil" /> : 
+        <div className="w-10 h-10 bg-gray-200 rounded-full mx-auto" />)
+  },
+  {
+    uid: "actions",
+    name: "Acciones",
+    render: (_: any, row: Persona) => (
+      <DropdownEdicion 
+        userId={row.id}
+        onEdit={() => navigate(`/usuarios/${row.id}`)} 
+        onResetPassword={() => handleResetPassword(row.id)}
+      />
+    )
+  }
 ];
-
-const searchableFields = ["first_name", "last_name", "identificacion"];
-
-const Usuarios: React.FC<UsuariosProps> = ({ isNavbarOpen }) => {
-  const { usuarios, error } = useUsuarios(); // Eliminado el argumento
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (error === "No tienes permisos para ver esta página. Debes ser administrador.") {

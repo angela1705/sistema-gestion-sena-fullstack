@@ -9,7 +9,11 @@ import { SenaEmpresaForm } from '@/components/entidades/SenaEmpresaForm';
 import { SenaEmpresa} from '@/types/entidades/SenaEmpresa'
 
 
-const SenaEmpresas = () => {
+interface SenaEmpresasProps {
+  isNavbarOpen: boolean;
+}
+
+const SenaEmpresas: React.FC<SenaEmpresasProps> = ({ isNavbarOpen }) => {
   const navigate = useNavigate();
   const { empresas, loading, error, refetch } = useSenaEmpresas();
   const { 
@@ -39,7 +43,7 @@ const SenaEmpresas = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 pt-16 flex items-center justify-center ${isNavbarOpen ? 'ml-64' : 'ml-16'}`}> 
       <Card className="w-full max-w-6xl mx-auto">
         <CardBody className="p-6">
           <div className="flex justify-between items-center mb-6">

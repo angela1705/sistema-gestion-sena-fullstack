@@ -45,4 +45,5 @@ export interface Persona {
   sede_nombre: string | null;
   numFicha: number | null;
   foto_url: string | null;
+  is_active: boolean;
 }

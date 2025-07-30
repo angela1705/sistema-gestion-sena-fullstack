@@ -8,7 +8,6 @@ import {
   Input,
   Select,
   SelectItem,
-  Image
 } from '@nextui-org/react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@heroui/modal';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +20,7 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
   const { success: successUsuario, error: errorUsuario, loading: loadingUsuario, registrarUsuario } = useRegistrarUsuario();
   const { success: successCargo, error: errorCargo, loading: loadingCargo, registrarCargo } = useRegistrarCargo();
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     identificacion: '',
     first_name: '',
@@ -45,9 +45,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
   const [cargosError, setCargosError] = useState<string | null>(null);
   const [rolesError, setRolesError] = useState<string | null>(null);
   const [sedesError, setSedesError] = useState<string | null>(null);
-  const [foto, setFoto] = useState<File | null>(null);
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
-  const [isUploading,setIsUploading] = useState(false)
 
   // Mapeo de nombre a nombre_display basado en OPCIONES_ROL del modelo Rol
   const OPCIONES_ROL: { [key: string]: string } = {
@@ -227,47 +224,27 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Solo se permiten archivos de imagen');
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen debe ser menor a 2MB');
-      return;
-    }
-
-    setFoto(file);
-    setFotoPreview(URL.createObjectURL(file));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsUploading(true);
     if (formData.rol === '3' && !formData.numFicha) {
-      alert('El número de ficha es obligatorio para  Pasante.');
-      setIsUploading(false);
+      alert('El número de ficha es obligatorio para el rol Pasante.');
       return;
     }
+    const payload = {
+      identificacion: formData.identificacion,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      email: formData.email,
+      password: formData.password,
+      telefono: formData.telefono || null,
+      rol: formData.rol ? parseInt(formData.rol) : null,
+      cargo: formData.cargo ? parseInt(formData.cargo) : null,
+      sede: formData.sede ? parseInt(formData.sede) : null,
+      numFicha: formData.numFicha ? parseInt(formData.numFicha) : null,
+    };
 
-    const formDataToSend = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value) formDataToSend.append(key, value);
-    });
-
-    if (foto) {
-      formDataToSend.append('foto', foto);
-    }
-
-    try {
-      await registrarUsuario(formDataToSend);
-    } finally {
-      setIsUploading(false);
-    }
+    console.log('Payload enviado:', payload);
+    await registrarUsuario(payload);
   };
 
   return (
@@ -279,51 +256,10 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
       <Card className="w-full max-w-5xl">
         <CardBody className="flex flex-col p-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Registrar Nuevo Usuario</h1>
-
-          <div className="mb-6 flex flex-col items-center">
-            <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden border-2 border-gray-300">
-              {fotoPreview ? (
-                <Image
-                  src={fotoPreview}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Sin foto</span>
-                </div>
-              )}
-            </div>
-            <input
-              type="file"
-              id="foto"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-              disabled={isUploading}
-            />
-            <label
-              htmlFor="foto"
-              className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
-                isUploading 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isUploading ? 'Subiendo...' : 'Seleccionar Foto'}
-            </label>
-            {foto && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 truncate max-w-xs">
-                {foto.name} ({(foto.size / 1024).toFixed(1)} KB)
-              </p>
-            )}
-          </div>
-
           {errorUsuario && <p className="text-red-500 mb-4">Error al registrar usuario: {errorUsuario}</p>}
           {cargosError && <p className="text-red-500 mb-4">Error al cargar cargos: {cargosError}</p>}
           {rolesError && <p className="text-red-500 mb-4">Error al cargar roles: {rolesError}</p>}
           {sedesError && <p className="text-red-500 mb-4">Error al cargar sedes: {sedesError}</p>}
-
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               name="identificacion"
@@ -332,7 +268,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               value={formData.identificacion}
               onChange={handleInputChange}
               isRequired
-              isDisabled={isUploading}
             />
             <Input
               name="first_name"
@@ -341,7 +276,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               value={formData.first_name}
               onChange={handleInputChange}
               isRequired
-              isDisabled={isUploading}
             />
             <Input
               name="last_name"
@@ -350,7 +284,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               value={formData.last_name}
               onChange={handleInputChange}
               isRequired
-              isDisabled={isUploading}
             />
             <Input
               name="email"
@@ -360,7 +293,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               value={formData.email}
               onChange={handleInputChange}
               isRequired
-              isDisabled={isUploading}
             />
             <Input
               name="password"
@@ -370,7 +302,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               value={formData.password}
               onChange={handleInputChange}
               isRequired
-              isDisabled={isUploading}
             />
             <Input
               name="telefono"
@@ -378,7 +309,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
               placeholder="Ingrese el teléfono"
               value={formData.telefono}
               onChange={handleInputChange}
-              isDisabled={isUploading}
             />
             <Select
               name="rol"
@@ -400,7 +330,6 @@ const RegistrarUsuarioForm: React.FC<RegistrarUsuarioFormProps> = ({ isNavbarOpe
                 ))
               )}
             </Select>
-
             <div className="flex items-end gap-2">
               <Select
                 name="cargo"
