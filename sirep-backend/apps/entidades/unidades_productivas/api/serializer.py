@@ -17,7 +17,7 @@ class UnidadProductivaSerializer(serializers.ModelSerializer):
     class Meta:
         model = UnidadProductiva
         fields = [
-            'id', 'nombre', 'logo', 'logo_url', 'descripcion',
+            'id', 'logo', 'logo_url', 'descripcion',
             'tipo', 'tipo_display', 'estado', 'estado_display',
             'esta_activa', 'encargado', 'encargado_info', 'sede',
             'sede_info', 'horario_atencion', 'fecha_creacion',
@@ -27,7 +27,7 @@ class UnidadProductivaSerializer(serializers.ModelSerializer):
             'logo': {'write_only': True, 'required': False},
             'encargado': {'write_only': True},
             'sede': {'write_only': True},
-            'nombre': {'required': True}
+        
         }
 
     def get_logo_url(self, obj):
@@ -43,17 +43,11 @@ class UnidadProductivaCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UnidadProductiva
         fields = [
-            'nombre', 'logo', 'descripcion', 'tipo', 'estado',
+             'logo', 'descripcion', 'tipo', 'estado',
             'encargado', 'sede', 'horario_atencion'
         ]
 
-    def validate_nombre(self, value):
-        """Valida que el nombre sea único"""
-        if self.instance and self.instance.nombre == value:
+        def validate_tipo(self, value):
+            if UnidadProductiva.objects.filter(tipo=value).exists():
+                raise serializers.ValidationError("Ya existe una unidad productiva con este tipo.")
             return value
-            
-        if UnidadProductiva.objects.filter(nombre=value).exists():
-            raise serializers.ValidationError("Ya existe una unidad productiva con este nombre.")
-        return value
-
-    
