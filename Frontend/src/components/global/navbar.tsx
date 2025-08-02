@@ -26,9 +26,10 @@ const menuItems: MenuItem[] = [
     label: 'Entidades',
     icon: <FaBuilding />,
     subItems: [
-      { id: 6, label: 'Sede', path: '/entidades/sede' },
-      { id: 7, label: 'Unidades Productivas', path: '/entidades/unidades-productivas' },
-      { id: 8, label: 'Empresas SENA', path: '/entidades/empresas-sena' },
+      { id: 6, label: 'Empresas SENA', path: '/entidades/empresas-sena' },
+      { id: 7, label: 'Sede', path: '/entidades/sede' },
+      { id: 8, label: 'Unidades Productivas', path: '/entidades/unidades-productivas' },
+     
     ],
   },
   {
