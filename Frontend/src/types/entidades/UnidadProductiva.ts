@@ -1,24 +1,37 @@
-// src/types/entidades/UnidadProductiva.ts
 export interface UnidadProductiva {
   id: number;
-  nombre: string;
-  logo_url: string | null;
+  logo?: string;
+  logo_url?: string;
   descripcion: string;
   tipo: string;
-  tipo_display: string;
-  estado: string;
-  estado_display: string;
-  esta_activa: boolean;
-  encargado_info: { id: number; nombre_completo: string } | null;
-  sede_info: { id: number; nombre_display: string } | null;
+  tipo_display?: string;
+  activa: boolean;  
+  encargado: number | null;
+  encargado_info?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
+  sede: number;
+  sede_info?: {
+    id: number;
+    nombre: string;
+  };
   horario_atencion: string;
-  fecha_creacion: string;
+  fecha_creacion?: string;
+  fecha_actualizacion?: string;
 }
 
-export interface UnidadProductivaFormData {
-  nombre: string;
-  tipo: string;
-  sede: string;
-  encargado: string;
-  horario_atencion: string; // Nuevo campo
+export interface UnidadOpciones {
+  tipos: Record<string, string>;
+  encargados: Array<{
+    id: number;
+    nombre_completo: string;
+  }>;
 }
+
+export interface UnidadOption {
+  id: number;
+  nombre_display: string;
+}
+

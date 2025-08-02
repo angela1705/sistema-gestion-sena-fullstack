@@ -1,38 +1,84 @@
-// src/hooks/entidades/useUnidadesProductivas.ts
 import { useState, useEffect } from 'react';
-import { UnidadProductiva } from '../../types/entidades/UnidadProductiva';
+import { UnidadProductiva } from '@/types/entidades/UnidadProductiva';
 
-export const useUnidadesProductivas = () => {
+interface UseUnidades {
+  unidades: UnidadProductiva[];
+  isLoading: boolean;
+  error: string | null;
+  retry: () => void;
+}
+
+export const useUnidades = (url: string): UseUnidades => {
   const [unidades, setUnidades] = useState<UnidadProductiva[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUnidades = async () => {
+    setIsLoading(true);
+    setError(null);
+
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No se encontró el token de autenticación');
-      const response = await fetch('http://localhost:8000/api/unidad-productiva/', {
+      if (!token) {
+        setError('No se encontró el token de autenticación.');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(url, {
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) throw new Error('Error al obtener unidades productivas');
+      if (!response.ok) {
+        if (response.status === 403) {
+          setError('No tienes permisos para ver esta página. Debes ser administrador.');
+        } else {
+          const errorData = await response.json();
+          // Manejo mejorado de errores del backend
+          setError(
+            errorData.detail || 
+            errorData.message || 
+            `Error ${response.status}: ${JSON.stringify(errorData)}`
+          );
+        }
+        setIsLoading(false);
+        return;
+      }
 
       const data = await response.json();
-      console.log('Datos de unidades productivas:', data);
-      const normalizedData = Array.isArray(data) ? data : data.results || [];
-      setUnidades(normalizedData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+
+      interface UnidadTemporal {
+        activa: boolean;
+        [key: string]: any;
+      }
+      
+      const unidadesFormateadas = (Array.isArray(data) ? data : data.results || []).map((unit: UnidadTemporal) => ({
+        ...unit,
+        esta_activa: unit.activa,
+        estado_display: unit.activa ? 'Activa' : 'Inactiva'
+      }));
+
+      setUnidades(unidadesFormateadas as UnidadProductiva[]);
+
+    } catch (err: any) {
+      console.error('Error al cargar unidades:', err);
+      setError(err.message || 'Error al cargar las unidades productivas.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUnidades();
-  }, []);
+  }, [url]);
 
-  return { unidades, loading, error, refetch: fetchUnidades };
+  return { 
+    unidades, 
+    isLoading, 
+    error, 
+    retry: fetchUnidades 
+  };
 };
