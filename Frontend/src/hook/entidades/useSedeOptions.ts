@@ -18,12 +18,20 @@ export const useSedeOptions = () => {
 
         if (!response.ok) throw new Error('Error al cargar sedes');
 
-        const data = await response.json();
-        const options = data.map((sede: any) => ({
+        const responseData = await response.json();
+
+        const sedeList = Array.isArray(responseData)
+          ? responseData
+          : responseData.results || [];
+
+        console.log('✅ Sedes recibidas:', sedeList);
+
+        const mappedOptions = sedeList.map((sede: any) => ({
           id: sede.id,
           nombre_display: sede.nombre
         }));
-        setSedeOptions(options);
+
+        setSedeOptions(mappedOptions);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {

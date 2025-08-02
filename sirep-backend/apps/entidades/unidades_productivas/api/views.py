@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
+from apps.usuarios.persona.models import Persona
+from apps.usuarios.rol.models import Rol
 
 from ..models import UnidadProductiva
 from .serializer import (
@@ -16,7 +18,7 @@ class UnidadProductivaViewSet(viewsets.ModelViewSet):
     """
     queryset = UnidadProductiva.objects.all()
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['sede', 'tipo', 'estado', 'encargado']
+    filterset_fields = ['sede', 'tipo', 'activa', 'encargado']
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
@@ -24,35 +26,21 @@ class UnidadProductivaViewSet(viewsets.ModelViewSet):
             return UnidadProductivaCreateUpdateSerializer
         return UnidadProductivaSerializer
 
-    @action(detail=True, methods=['patch'])
-    def cambiar_estado(self, request, pk=None):
-        """
-        Cambia el estado de la unidad productiva
-        Ejemplo payload: {'estado': 'inactiva'}
-        """
-        unidad = self.get_object()
-        nuevo_estado = request.data.get('estado')
-        
-        if nuevo_estado not in dict(UnidadProductiva.ESTADOS_UNIDAD).keys():
-            return Response(
-                {'error': 'Estado no válido'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        unidad.estado = nuevo_estado
-        unidad.save()
-        
-        return Response(
-            {'estado': unidad.estado, 'estado_display': unidad.get_estado_display()},
-            status=status.HTTP_200_OK
-        )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'],url_path="opciones")
     def opciones(self, request):
-        """
-        Devuelve las opciones disponibles para campos choices
-        """
+        tipos = dict(UnidadProductiva._meta.get_field('tipo').choices)
+
+        rol_liderup = Rol.objects.filter(nombre='liderup').first()
+        encargados = Persona.objects.filter(rol=rol_liderup).values(
+        'id', 'first_name', 'last_name')
+
+        # Construir lista con nombre completo
+        encargados_data = [
+        {'id': p['id'], 'nombre_completo': f"{p['first_name']} {p['last_name']}".strip()}
+        for p in encargados]
+
         return Response({
-            'tipos': dict(UnidadProductiva.TIPO_UNIDAD),
-            'estados': dict(UnidadProductiva.ESTADOS_UNIDAD)
+        "tipos": tipos,
+        "encargados":encargados_data
         })

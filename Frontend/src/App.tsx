@@ -13,7 +13,7 @@ import UnidadesProductivas from './pages/entidades/UnidadesProductivas';
 import Categorias from './pages/inventario/Categorias';
 import Precios from './pages/inventario/Precios';
 import Perfil from './pages/usuarios/Perfil';
-import CajaDiaria from './pages/gestion_operativa/CajaDiaria';
+//import CajaDiaria from './pages/gestion_operativa/CajaDiaria';
 import Reserva from './pages/gestion_operativa/Reserva';
 import Transaccion from './pages/gestion_operativa/Transaccion';
 import DetalleCaja from './pages/gestion_operativa/DetalleCaja';
@@ -50,7 +50,7 @@ function App() {
             <Route path="/inventario/categorias" element={<Categorias isNavbarOpen={isOpen} />} />
             <Route path="/inventario/precios" element={<Precios isNavbarOpen={isOpen} />} />
             <Route path="/perfil" element={<Perfil isNavbarOpen={isOpen} />} />
-            <Route path="/gestion_operaciones/caja_diaria" element={<CajaDiaria isNavbarOpen={isOpen} />} />
+          
             <Route path="/gestion_operaciones/reservas" element={<Reserva isNavbarOpen={isOpen} />} />
             <Route path="/gestion_operaciones/transacciones" element={<Transaccion isNavbarOpen={isOpen} />} />
             <Route path="/gestion_operaciones/detalle_caja" element={<DetalleCaja isNavbarOpen={isOpen} />} />

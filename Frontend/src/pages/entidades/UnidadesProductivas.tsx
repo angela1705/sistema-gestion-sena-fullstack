@@ -1,145 +1,166 @@
-// src/pages/entidades/UnidadesProductivas.tsx
-import React, { useState, useEffect } from 'react';
-import { Button, Card, CardBody } from '@heroui/react';
-import { FaPlus } from 'react-icons/fa';
-import { useUnidadesProductivas } from '../../hook/entidades/useUnidadesProductivas';
-import { useSedeOptions } from '@/hook/entidades/useSedeOptions';
-import { useRegistrarUnidadProductiva } from '../../hook/entidades/useRegistrarUnidadProductiva';
-import Tabla from '../../components/global/Tabla';
-import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react';
-import { RegistrarUnidadProductivaForm } from '../../components/entidades/RegistrarUnidadProductivaForm';
-import { UnidadProductivaFormData } from '../../types/entidades/UnidadProductiva';
-import { EncargadoOption } from '../../types/entidades/Options';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUnidades } from '@/hook/entidades/useUnidadesProductivas';
+import { useManageUnidad } from '@/hook/entidades/useManageUnidad';
+import { Button, Card, CardBody, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Spinner, Image } from '@nextui-org/react';
+import { FaPlus, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { UnidadProductivaForm } from '@/components/entidades/UnidadProductivaForm';
+import { UnidadProductiva } from '@/types/entidades/UnidadProductiva';
 
-interface UnidadesProductivasProps {
+interface UnidadesProps {
   isNavbarOpen: boolean;
 }
 
-const columns = [
-  { uid: 'id', name: 'ID' },
-  { uid: 'nombre', name: 'Nombre' },
-  { uid: 'sede_info', name: 'Sede', render: (data: any) => data?.nombre_display || 'N/A' },
-  {
-    uid: 'encargado_info',
-    name: 'Encargado',
-    render: (data: any) => (data ? `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Sin encargado' : 'Sin encargado'),
-  },
-  { uid: 'horario_atencion', name: 'Horario de Atención' },
-  { uid: 'tipo_display', name: 'Tipo' },
-  { uid: 'estado_display', name: 'Estado' },
-];
-
-const searchableFields = ['nombre', 'sede_info.nombre_display', 'encargado_info.first_name', 'encargado_info.last_name', 'tipo_display'];
-
-const UnidadesProductivas: React.FC<UnidadesProductivasProps> = ({ isNavbarOpen }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { unidades, loading, error, refetch } = useUnidadesProductivas();
-  const { encargados, loading: optionsLoading, error: optionsError } = useSedeOptions();
-  const { registrarUnidad, loading: registerLoading, error: registerError } = useRegistrarUnidadProductiva();
-  const [tipos, setTipos] = useState<{ value: string; label: string }[]>([]);
+const UnidadesPage: React.FC<UnidadesProps> = ({ isNavbarOpen }) => {
+  const navigate = useNavigate();
+  const { unidades, isLoading, error, retry } = useUnidades('http://localhost:8000/api/unidad-productiva/');
+  const { 
+    success, 
+    error: manageError, 
+    loading: manageLoading, 
+    toggleActiva, 
+    createUpdateUnidad, 
+    reset 
+  } = useManageUnidad('http://localhost:8000/api/unidad-productiva/');
+  
+  const [selectedUnidad, setSelectedUnidad] = useState<UnidadProductiva | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    const fetchTipos = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:8000/api/unidad-productiva/opciones/', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Error al obtener opciones');
-        const data = await response.json();
-        const tipos = Object.entries(data.tipos).map(([value, label]) => ({
-          value,
-          label: label as string,
-        }));
-        setTipos(tipos);
-      } catch (err) {
-        console.error('Error al obtener tipos:', err);
-      }
-    };
-    fetchTipos();
-  }, []);
+    if (error?.includes('No tienes permisos')) {
+      navigate('/login');
+    }
+  }, [error, navigate]);
 
-  const [formData, setFormData] = useState<UnidadProductivaFormData>({
-    nombre: '',
-    tipo: '',
-    sede: '',
-    encargado: '',
-    horario_atencion: '',
-  });
+  useEffect(() => {
+    if (success) {
+      setIsFormOpen(false);
+      setSelectedUnidad(null);
+      reset();
+      retry();
+    }
+  }, [success, reset, retry]);
 
-  const handleChange = (field: keyof UnidadProductivaFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleToggleActiva = async (id: number, currentStatus: boolean) => {
+    await toggleActiva(id, currentStatus);
+    retry();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (data: FormData) => {
     try {
-      console.log('Enviando formData:', formData);
-      await registrarUnidad(formData);
-      setIsModalOpen(false);
-      setFormData({ nombre: '', tipo: '', sede: '', encargado: '', horario_atencion: '' });
-      refetch();
+      await createUpdateUnidad(data, !!selectedUnidad?.id, selectedUnidad?.id);
     } catch (err) {
-      console.error('Error al registrar unidad productiva:', err);
+      console.error('Error al guardar unidad:', err);
     }
   };
 
-  const safeEncargados: EncargadoOption[] = Array.isArray(encargados) ? encargados : [];
-
-  console.log('Datos en UnidadesProductivas:', { unidades, safeEncargados, formData });
-
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 ${
-        isNavbarOpen ? 'ml-64' : 'ml-16'
-      } flex items-center justify-center`}
-    >
-      <Card className="w-full max-w-5xl">
-        <CardBody className="flex flex-col p-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Unidades Productivas</h1>
-          {loading && <p className="text-gray-500">Cargando unidades...</p>}
-          {(error || optionsError || registerError) && (
-            <p className="text-red-500 mb-4">{error || optionsError || registerError}</p>
+    <div className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 transition-all duration-300 p-4 pt-16 ${isNavbarOpen ? 'ml-64' : 'ml-16'} flex items-center justify-center`}>
+      <Card className="w-full max-w-6xl mx-auto">
+        <CardBody className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestión de Unidades Productivas</h1>
+            <Button
+              color="primary"
+              startContent={<FaPlus />}
+              onPress={() => {
+                setSelectedUnidad(null);
+                setIsFormOpen(true);
+              }}
+            >
+              Nueva Unidad
+            </Button>
+          </div>
+
+          {isLoading && <Spinner className="my-4" />}
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+
+          {unidades.length > 0 ? (
+            <div className="mt-10">
+              <Table aria-label="Tabla de unidades productivas">
+                <TableHeader>
+                  <TableColumn>LOGO</TableColumn>
+                  <TableColumn>TIPO</TableColumn>
+                  <TableColumn>SEDE</TableColumn>
+                  <TableColumn>ENCARGADO</TableColumn>
+                  <TableColumn>DESCRIPCIÓN</TableColumn>
+                  <TableColumn>ESTADO</TableColumn>
+                  <TableColumn>HORARIO</TableColumn>
+                  <TableColumn>ACCIONES</TableColumn>
+                  
+                </TableHeader>
+
+                <TableBody>
+                  {unidades.map((unidad) => (
+                    <TableRow key={unidad.id}>
+                      <TableCell>
+                        {unidad.logo_url && (
+                          <Image
+                            src={unidad.logo_url}
+                            alt="Logo"
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>{unidad.tipo_display}</TableCell>
+                      <TableCell>{unidad.sede_info?.nombre}</TableCell>
+                      <TableCell>
+                        {unidad.encargado_info
+                          ? `${unidad.encargado_info.first_name} ${unidad.encargado_info.last_name}`: '-'}
+                       </TableCell>
+                      <TableCell>{unidad.descripcion || '-'}</TableCell>
+                      <TableCell>
+                        <Chip color={unidad.activa ? 'success' : 'danger'}>
+                          {unidad.activa ? 'Activa' : 'Inactiva'}
+                        </Chip>
+                      </TableCell>
+                      <TableCell>{unidad.horario_atencion || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            isIconOnly
+                            onPress={() => {
+                              setSelectedUnidad(unidad);
+                              setIsFormOpen(true);
+                            }}
+                          >
+                            <FaEdit />
+                          </Button>
+                          <Button
+                            size="sm"
+                            isIconOnly
+                            color={unidad.activa ? 'warning' : 'success'}
+                            onPress={() => handleToggleActiva(unidad.id, unidad.activa)}
+                            isLoading={manageLoading}
+                          >
+                            {unidad.activa ? <FaToggleOff /> : <FaToggleOn />}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            !isLoading && <p className="text-gray-500">No hay unidades productivas registradas</p>
           )}
-          {unidades?.length === 0 && !loading && !error && (
-            <p className="text-gray-500 mb-4">No hay unidades productivas para mostrar.</p>
-          )}
-          <Tabla
-            columns={columns}
-            data={unidades || []}
-            searchableFields={searchableFields}
-            extraControls={
-              <div className="flex items-center gap-4">
-                <Button
-                  onPress={() => setIsModalOpen(true)}
-                  color="primary"
-                  startContent={<FaPlus />}
-                >
-                  Registrar
-                </Button>
-              </div>
-            }
-          />
-          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-            <ModalContent>
-              <ModalHeader>Registrar Nueva Unidad Productiva</ModalHeader>
-              <ModalBody>
-                <RegistrarUnidadProductivaForm
-                  formData={formData}
-                  encargados={safeEncargados}
-                  tipos={tipos}
-                  onChange={handleChange}
-                  onSubmit={handleSubmit}
-                  loading={registerLoading}
-                  error={registerError}
-                  optionsLoading={optionsLoading}
-                />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
         </CardBody>
       </Card>
+
+      <UnidadProductivaForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleSubmit}
+        isSubmitting={manageLoading}
+        unidad={selectedUnidad}
+        error={manageError}
+      />
     </div>
   );
 };
 
-export default UnidadesProductivas;
+export default UnidadesPage;
