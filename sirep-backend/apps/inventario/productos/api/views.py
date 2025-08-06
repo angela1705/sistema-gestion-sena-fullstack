@@ -24,7 +24,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
     }
     search_fields = ['nombre', 'descripcion', 'categoria__nombre']
     ordering_fields = ['nombre', 'precio_compra', 'fecha_creacion']
-    ordering = ['nombre']
+    ordering = ['-id']
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_permissions(self):

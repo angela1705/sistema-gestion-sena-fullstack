@@ -1,11 +1,13 @@
-import { Button, Input, Switch } from '@nextui-org/react';
-import { Select, SelectItem } from '@heroui/select';
-import { ProductoFormData } from '../../types/inventario/Producto';
+// components/inventario/RegistrarProductoForm.tsx
+import { Input, Checkbox } from '@nextui-org/react';
+import Formulario from '@/components/global/Formulario';
+import { ProductoFormData } from '@/types/inventario/Producto';
+import { Button } from '@nextui-org/react';
 
-interface ProductoFormProps {
+interface Props {
   formData: ProductoFormData;
-  categorias: { id: number; nombre: string }[];
-  unidades: { id: number; nombre: string }[];
+  categorias: any[];
+  unidades: any[];
   onChange: (field: keyof ProductoFormData, value: any) => void;
   onSubmit: () => void;
   loading: boolean;
@@ -13,301 +15,157 @@ interface ProductoFormProps {
   optionsLoading: boolean;
 }
 
-const estadoOptions = [
-  { value: 'disponible', label: 'Disponible' },
-  { value: 'no_disponible', label: 'No disponible' },
-];
-
-const unidadMedidaOptions = [
-  { value: 'unidad', label: 'Unidades' },
-  { value: 'gramos', label: 'Gramos' },
-  { value: 'ml', label: 'Mililitros' },
-  { value: 'kg', label: 'Kilogramos' },
-  { value: 'litro', label: 'Litros' },
-];
-
 export const RegistrarProductoForm = ({
   formData,
-  categorias = [],
-  unidades = [],
+  categorias,
+  unidades,
   onChange,
   onSubmit,
   loading,
   error,
   optionsLoading,
-}: ProductoFormProps) => {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    onChange('imagen', file);
-  };
-
+}: Props) => {
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
-      {error && (
-        <div className="col-span-2 text-red-500 p-2 rounded bg-red-50 mb-4">{error}</div>
+    <Formulario title="Formulario de Producto" onSubmit={onSubmit}>
+      <Input label="Nombre" value={formData.nombre} onChange={(e) => onChange('nombre', e.target.value)} />
+      <Input label="Descripción" value={formData.descripcion} onChange={(e) => onChange('descripcion', e.target.value)} />
+
+      {/* Select nativo: Categoría */}
+      <label className="block text-sm font-medium text-gray-700">Categoría</label>
+      <select
+        value={formData.categoria}
+        onChange={(e) => onChange('categoria', e.target.value)}
+        disabled={optionsLoading}
+        className="w-full border rounded p-2"
+      >
+        <option value="">Selecciona una categoría</option>
+        {categorias.map((cat) => (
+          <option key={cat.id} value={cat.id}>
+            {cat.nombre}
+          </option>
+        ))}
+      </select>
+
+      {/* Select nativo: Unidad Productiva */}
+      <label className="block text-sm font-medium text-gray-700">Unidad Productiva</label>
+      <select
+        value={formData.unidadP}
+        onChange={(e) => onChange('unidadP', e.target.value)}
+        disabled={optionsLoading}
+        className="w-full border rounded p-2"
+      >
+        <option value="">Selecciona una unidad productiva</option>
+        {unidades.map((up) => (
+          <option key={up.id} value={up.id}>
+            {up.tipo_display}
+          </option>
+        ))}
+      </select>
+
+      {/* Estado */}
+      <label className="block text-sm font-medium text-gray-700">Estado</label>
+      <select
+        value={formData.estado}
+        onChange={(e) => onChange('estado', e.target.value)}
+        className="w-full border rounded p-2"
+      >
+        <option value="disponible">Disponible</option>
+        <option value="no_disponible">No disponible</option>
+      </select>
+
+      <Input
+        label="Precio de Compra"
+        type="number"
+        value={formData.precio_compra}
+        onChange={(e) => onChange('precio_compra', e.target.value)}
+      />
+
+      <Checkbox isSelected={formData.tiene_descuento} onValueChange={(v) => onChange('tiene_descuento', v)}>
+        ¿Tiene Descuento?
+      </Checkbox>
+      {formData.tiene_descuento && (
+        <Input
+          label="Porcentaje Descuento"
+          type="number"
+          value={formData.porcentaje_descuento || ''}
+          onChange={(e) => onChange('porcentaje_descuento', e.target.value)}
+        />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Checkbox isSelected={formData.stock} onValueChange={(v) => onChange('stock', v)}>
+        ¿Maneja Stock?
+      </Checkbox>
+      {formData.stock && (
         <Input
-          label="Nombre*"
-          value={formData.nombre}
-          onChange={(e) => onChange('nombre', e.target.value)}
-          isRequired
-          className="w-full"
-        />
-
-        <Input
-          label="Descripción*"
-          value={formData.descripcion}
-          onChange={(e) => onChange('descripcion', e.target.value)}
-          isRequired
-          className="w-full"
-          type="textarea"
-        />
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Categoría*</label>
-          <Select
-            label="Categoría"
-            selectedKeys={formData.categoria ? [formData.categoria] : []}
-            onChange={(e) => onChange('categoria', e.target.value)}
-            className="w-full"
-            isRequired
-            isLoading={optionsLoading}
-            isDisabled={optionsLoading || !categorias.length}
-          >
-            {categorias.length > 0 ? (
-              categorias.map((categoria) => (
-                <SelectItem key={categoria.id.toString()} textValue={categoria.nombre}>
-                  {categoria.nombre}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem key="no-categorias" textValue="No hay categorías disponibles" isDisabled>
-                No hay categorías disponibles
-              </SelectItem>
-            )}
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Unidad Productiva*</label>
-          <Select
-            label="Unidad Productiva"
-            selectedKeys={formData.unidadP ? [formData.unidadP] : []}
-            onChange={(e) => onChange('unidadP', e.target.value)}
-            className="w-full"
-            isRequired
-            isLoading={optionsLoading}
-            isDisabled={optionsLoading || !unidades.length}
-          >
-            {unidades.length > 0 ? (
-              unidades.map((unidad) => (
-                <SelectItem key={unidad.id.toString()} textValue={unidad.nombre}>
-                  {unidad.nombre}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem key="no-unidades" textValue="No hay unidades disponibles" isDisabled>
-                No hay unidades disponibles
-              </SelectItem>
-            )}
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Estado*</label>
-          <Select
-            label="Estado"
-            selectedKeys={formData.estado ? [formData.estado] : []}
-            onChange={(e) => onChange('estado', e.target.value)}
-            className="w-full"
-            isRequired
-          >
-            {estadoOptions.map((option) => (
-              <SelectItem key={option.value} textValue={option.label}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </Select>
-        </div>
-
-        <Switch
-          isSelected={formData.stock}
-          onValueChange={(value) => onChange('stock', value)}
-          className="w-full"
-        >
-          Gestiona Stock
-        </Switch>
-
-        {formData.stock && (
-          <Input
-            label="Stock Actual*"
-            type="number"
-            value={formData.stock_actual?.toString() || ''}
-            onChange={(e) => onChange('stock_actual', parseInt(e.target.value))}
-            isRequired
-            className="w-full"
-            min="0"
-          />
-        )}
-
-        <Switch
-          isSelected={formData.reservas}
-          onValueChange={(value) => onChange('reservas', value)}
-          className="w-full"
-        >
-          Permitir reservas
-        </Switch>
-
-        {formData.reservas && (
-          <>
-            <Input
-              label="Hora Límite Reserva"
-              type="time"
-              value={formData.hora_limite_reserva || ''}
-              onChange={(e) => onChange('hora_limite_reserva', e.target.value)}
-              className="w-full"
-            />
-            <Input
-              label="Máximo Reservas*"
-              type="number"
-              value={formData.max_reservas?.toString() || ''}
-              onChange={(e) => onChange('max_reservas', parseInt(e.target.value))}
-              isRequired
-              className="w-full"
-              min="1"
-            />
-          </>
-        )}
-
-        <Input
-          label="Precio Compra*"
+          label="Stock Actual"
           type="number"
-          value={formData.precio_compra}
-          onChange={(e) => onChange('precio_compra', e.target.value)}
-          isRequired
-          className="w-full"
-          step="0.01"
-          min="0.01"
+          value={formData.stock_actual?.toString() || ''}
+          onChange={(e) => onChange('stock_actual', parseInt(e.target.value))}
         />
+      )}
 
-        <Switch
-          isSelected={formData.tiene_descuento}
-          onValueChange={(value) => onChange('tiene_descuento', value)}
-          className="w-full"
-        >
-          Aplicar descuento
-        </Switch>
-
-        {formData.tiene_descuento && (
+      <Checkbox isSelected={formData.reservas} onValueChange={(v) => onChange('reservas', v)}>
+        ¿Permite Reservas?
+      </Checkbox>
+      {formData.reservas && (
+        <>
           <Input
-            label="Porcentaje Descuento*"
-            type="number"
-            value={formData.porcentaje_descuento?.toString() || ''}
-            onChange={(e) => onChange('porcentaje_descuento', e.target.value)}
-            isRequired
-            className="w-full"
-            min="0"
-            max="100"
-            step="0.01"
+            label="Hora Límite"
+            type="time"
+            value={formData.hora_limite_reserva || ''}
+            onChange={(e) => onChange('hora_limite_reserva', e.target.value)}
           />
-        )}
+          <Input
+            label="Máx Reservas"
+            type="number"
+            value={formData.max_reservas?.toString() || ''}
+            onChange={(e) => onChange('max_reservas', parseInt(e.target.value))}
+          />
+        </>
+      )}
 
-        <Switch
-          isSelected={formData.tiene_comision}
-          onValueChange={(value) => onChange('tiene_comision', value)}
-          className="w-full"
-        >
-          Aplicar comisión
-        </Switch>
-
-        {formData.tiene_comision && (
-          <>
-            <Input
-              label="Porcentaje Comisión*"
-              type="number"
-              value={formData.comision?.toString() || ''}
-              onChange={(e) => onChange('comision', e.target.value)}
-              isRequired
-              className="w-full"
-              min="0"
-              max="100"
-              step="0.01"
-            />
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Unidad Productiva Destino Comisión*</label>
-              <Select
-                label="Unidad Productiva Destino"
-                selectedKeys={formData.unidad_comision_destino ? [formData.unidad_comision_destino] : []}
-                onChange={(e) => onChange('unidad_comision_destino', e.target.value)}
-                className="w-full"
-                isRequired
-                isLoading={optionsLoading}
-                isDisabled={optionsLoading || !unidades.length}
-              >
-                {unidades.length > 0 ? (
-                  unidades.map((unidad) => (
-                    <SelectItem key={unidad.id.toString()} textValue={unidad.nombre}>
-                      {unidad.nombre}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem key="no-unidades" textValue="No hay unidades disponibles" isDisabled>
-                    No hay unidades disponibles
-                  </SelectItem>
-                )}
-              </Select>
-            </div>
-          </>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Unidad de Medida*</label>
-          <Select
-            label="Unidad de Medida"
-            selectedKeys={formData.unidad_medida_base ? [formData.unidad_medida_base] : []}
-            onChange={(e) => onChange('unidad_medida_base', e.target.value)}
-            className="w-full"
-            isRequired
+      <Checkbox isSelected={formData.tiene_comision} onValueChange={(v) => onChange('tiene_comision', v)}>
+        ¿Tiene Comisión?
+      </Checkbox>
+      {formData.tiene_comision && (
+        <>
+          <Input
+            label="Comisión (%)"
+            type="number"
+            value={formData.comision || ''}
+            onChange={(e) => onChange('comision', e.target.value)}
+          />
+          <label className="block text-sm font-medium text-gray-700">Unidad que recibe la comisión</label>
+          <select
+            value={formData.unidad_comision_destino}
+            onChange={(e) => onChange('unidad_comision_destino', e.target.value)}
+            disabled={optionsLoading}
+            className="w-full border rounded p-2"
           >
-            {unidadMedidaOptions.map((option) => (
-              <SelectItem key={option.value} textValue={option.label}>
-                {option.label}
-              </SelectItem>
+            <option value="">Selecciona una unidad</option>
+            {unidades.map((up) => (
+              <option key={up.id} value={up.id}>
+                {up.nombre}
+              </option>
             ))}
-          </Select>
-        </div>
+          </select>
+        </>
+      )}
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Imagen</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} className="w-full" />
-        </div>
+      {/* Imagen */}
+      <label className="block text-sm font-medium text-gray-700">Imagen</label>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => onChange('imagen', e.target.files?.[0] || null)}
+        className="w-full border rounded p-2"
+      />
 
-        <div className="col-span-1 md:col-span-2 flex justify-end pt-4">
-          <Button
-            color="primary"
-            onPress={onSubmit}
-            isLoading={loading}
-            isDisabled={
-              loading ||
-              !formData.nombre ||
-              !formData.descripcion ||
-              !formData.categoria ||
-              !formData.unidadP ||
-              !formData.estado ||
-              !formData.precio_compra ||
-              (formData.stock && formData.stock_actual == null) ||
-              (formData.reservas && (!formData.hora_limite_reserva || formData.max_reservas == null)) ||
-              (formData.tiene_descuento && !formData.porcentaje_descuento) ||
-              (formData.tiene_comision && (!formData.comision || !formData.unidad_comision_destino))
-            }
-            className="w-full md:w-auto"
-          >
-            {loading ? 'Guardando...' : 'Guardar Producto'}
-          </Button>
-        </div>
-      </div>
-    </div>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+
+      <Button type="submit" isLoading={loading} color="primary" fullWidth>
+        Guardar
+      </Button>
+    </Formulario>
   );
 };

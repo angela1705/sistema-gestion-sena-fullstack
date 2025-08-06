@@ -17,6 +17,123 @@ from apps.gestion_operaciones.cartera.models import DetalleCartera
 from decimal import Decimal
 
 class ReservaViewSet(viewsets.ModelViewSet):
+    @action(detail=False, methods=['get'])
+    def reporte_pdf(self, request):
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from datetime import datetime
+        from django.http import HttpResponse
+        from collections import Counter
+
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        unidad_productiva_id = request.GET.get('unidad_productiva')
+        producto_id = request.GET.get('producto')
+
+        if not (fecha_inicio and fecha_fin and unidad_productiva_id and producto_id):
+            return HttpResponse("Error: Debes proporcionar 'fecha_inicio', 'fecha_fin', 'unidad_productiva' y 'producto'", status=400)
+
+        try:
+            fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
+        except Exception:
+            return HttpResponse("Error: Formato de fecha inválido. Usa YYYY-MM-DD", status=400)
+
+
+        reservas = Reserva.objects.filter(
+            fecha_creacion__date__range=[fecha_inicio_dt, fecha_fin_dt],
+            producto_id=producto_id,
+            producto__unidadP_id=unidad_productiva_id,
+            estado__in=["fiado", "pagada"]
+        )
+
+        if not reservas.exists():
+            return HttpResponse("No hay reservas fiadas o pagadas para los filtros seleccionados", status=404)
+
+        unidad_productiva = reservas.first().producto.unidadP
+        producto = reservas.first().producto
+        cantidad_total = sum(r.cantidad for r in reservas)
+
+        # Desglose por cargo
+        cargos = [r.persona.cargo.nombre if r.persona.cargo else 'Sin cargo' for r in reservas]
+        conteo_cargos = Counter()
+        for r in reservas:
+            cargo = r.persona.cargo.nombre if r.persona.cargo else 'Sin cargo'
+            conteo_cargos[cargo] += r.cantidad
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_reservas.pdf"'
+
+        doc = SimpleDocTemplate(response, pagesize=letter)
+        elementos = []
+        styles = getSampleStyleSheet()
+
+
+        encabezado_data = [
+            ["", Paragraph(f"<b>Centro de gestión y desarrollo sostenible surcolombiano<br/>SENA - YAMBORÓ</b>", styles['Normal']), ""],
+            ["", Paragraph(f"<b>Informe de Reservas</b>", styles['Heading2']), Paragraph(f"{datetime.today().strftime('%Y-%m-%d')}", styles['Normal'])],
+            ["", "", Paragraph("Página 1 de 1", styles['Normal'])],
+        ]
+        tabla_encabezado = Table(encabezado_data, colWidths=[60, 350, 100])
+        tabla_encabezado.setStyle(TableStyle([
+            ('SPAN', (0, 0), (0, 2)),
+            ('SPAN', (1, 0), (1, 1)),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elementos.append(tabla_encabezado)
+
+        elementos.append(Spacer(1, 10))
+        elementos.append(Paragraph(f"<b>Unidad Productiva:</b> {unidad_productiva.nombre}", styles['Normal']))
+        elementos.append(Paragraph(f"<b>Producto:</b> {producto.nombre}", styles['Normal']))
+        elementos.append(Paragraph(f"<b>Periodo:</b> {fecha_inicio} a {fecha_fin}", styles['Normal']))
+        elementos.append(Spacer(1, 10))
+
+        objetivo_texto = "Este documento presenta un resumen detallado de las reservas realizadas en el sistema para el producto y unidad productiva seleccionados, incluyendo cantidad total y desglose por cargo de las personas que realizaron la reserva."
+        objetivo = Paragraph("<b>1. Objetivo</b><br/>" + objetivo_texto, styles['Normal'])
+        elementos.append(objetivo)
+        elementos.append(Spacer(1, 15))
+
+        elementos.append(Paragraph("<b>2. Detalle de reservas</b>", styles['Heading3']))
+        elementos.append(Spacer(1, 5))
+
+        data_reservas = [["Persona", "Cargo", "Cantidad", "Fecha"]]
+        for r in reservas:
+            persona = f"{r.persona.first_name} {r.persona.last_name}"
+            cargo = r.persona.cargo.nombre if r.persona.cargo else 'Sin cargo'
+            data_reservas.append([
+                persona,
+                cargo,
+                r.cantidad,
+                r.fecha_creacion.strftime("%Y-%m-%d")
+            ])
+
+        tabla_reservas = Table(data_reservas)
+        tabla_reservas.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elementos.append(tabla_reservas)
+        elementos.append(Spacer(1, 15))
+
+        elementos.append(Paragraph("<b>3. Resumen General</b>", styles['Heading3']))
+        resumen_texto = f"""
+        Durante el período del {fecha_inicio} al {fecha_fin}, se realizaron {reservas.count()} reservas para el producto <b>{producto.nombre}</b> en la unidad productiva <b>{unidad_productiva.nombre}</b>.<br/>
+        <b>Cantidad total reservada:</b> {cantidad_total} unidades.<br/>
+        <b>Desglose por cargo:</b><br/>
+        """
+        for cargo, cantidad in conteo_cargos.items():
+            resumen_texto += f"- {cargo}: {cantidad} <br/>"
+        elementos.append(Paragraph(resumen_texto, styles['Normal']))
+
+        doc.build(elementos)
+        return response
     queryset = Reserva.objects.all()
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
